@@ -1,2 +1,11 @@
 # Memoir
-An app for saving and sharing the moments of our lives - as our cameras seem them.
+
+
+
+## Members:
+- Andrew Willms (Andrew-Willms)
+- Arni Nalawade (Arni-Nalawade)
+- Brianna Gonzalez (gonzalezbrianna)
+- Carter Demars (carterdemars)
+- Nathan Xie (na3th9n)
+- Ryan Gosal (RyanGosal24)
