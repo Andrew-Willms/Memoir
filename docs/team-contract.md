@@ -24,5 +24,8 @@
 - Decisions can be made during meetings even if some members are absent.
 - Each member will take turns listening as well as talking, and active listening will be a strategy for all group discussions.
 
+## Individual Expectations
+- Expect each member to spend an average of 4 hours on the project per week
+
 - Brianna will post the agenda for the week in our group chat each Monday.
 - Brianna will take notes during all meetings.
