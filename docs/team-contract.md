@@ -6,6 +6,7 @@
 - XXX leads the [front-end/back-end/both] design [for YYY module(s)].
 - XXX leads the integration and end-to-end testing of the app. 
 - XXX leads the design and maintenance of the database.
+- Brianna is the project manager who ensures that deliverables are competed before deadlines and creating a software development task board to show where different tasks are in terms of progress (to do, development, testing, production, etc.)
 
 ## Communication
 
