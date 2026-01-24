@@ -29,3 +29,4 @@
 
 - Brianna will post the agenda for the week in our group chat each Monday.
 - Brianna will take notes during all meetings.
+- Arni will consult with the team members and design the UI/UX such that it accurately depicts the team vision for memoir.
