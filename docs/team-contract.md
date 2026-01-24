@@ -6,7 +6,7 @@
 - Carter leads the back-end design
 - Nathan leads the integration and end-to-end testing of the app. 
 - Arni leads the design of the app using React and Figma
-- Ryan leads the front-end 
+- Ryan is the product lead who makes all product based decisions.
 - Brianna is the project manager who ensures that deliverables are competed before deadlines and creating a software development task board to show where different tasks are in terms of progress (to do, development, testing, production, etc.)
 
 ## Communication
@@ -25,7 +25,7 @@
 - Each member will take turns listening as well as talking, and active listening will be a strategy for all group discussions.
 
 ## Individual Expectations
-- Expect each member to spend an average of 4 hours on the project per week
+- Expect each member to spend an average of 6 hours on the project per week
 
 - Brianna will post the agenda for the week in our group chat each Monday.
 - Brianna will take notes during all meetings.
