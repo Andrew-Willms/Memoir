@@ -1,0 +1,2 @@
+- The team decided on specific roles that each member would take on
+- The team divided tasks for the Project Proposal
