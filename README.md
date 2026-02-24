@@ -22,3 +22,5 @@ See [the pitch](./docs/Pitch.md) for a more detailed description of Memoir and i
 ## 452 Housekeeping
 - See [Team contract](./docs/team-contract.md) for our team contract and team rolls.
 - See [Meeting minutes](./docs/meetings/) for a record of meeting minutes.
+
+---
