@@ -46,8 +46,9 @@ interface JournalEntryDao {
         """
         SELECT DISTINCT je.*
         FROM journal_entry je
-        LEFT JOIN entry_tag et ON et.entryId = je.id
-        LEFT JOIN tag t ON t.id = et.tagId
+        LEFT JOIN entry_photo ep ON ep.entryId = je.id
+        LEFT JOIN photo_tag pt ON pt.photoId = ep.photoId
+        LEFT JOIN tag t ON t.id = pt.tagId
         WHERE je.reflectionText LIKE '%' || :query || '%'
             OR je.title LIKE '%' || :query || '%'
             OR t.value LIKE '%' || :query || '%'

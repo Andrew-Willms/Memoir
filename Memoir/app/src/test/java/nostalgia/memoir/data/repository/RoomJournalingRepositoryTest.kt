@@ -51,7 +51,7 @@ class RoomJournalingRepositoryTest {
                 PhotoAssetDraft(contentUri = "content://photos/2", width = 800, height = 600),
             ),
             tags = listOf(
-                TagDraft(type = TagType.PLACE, value = "Waterloo Park"),
+                TagDraft(type = TagType.LOCATION, value = "Waterloo Park"),
                 TagDraft(type = TagType.KEYWORD, value = "hike"),
             ),
         )
@@ -64,7 +64,7 @@ class RoomJournalingRepositoryTest {
         assertEquals(2, aggregate.photos.size)
         assertEquals(listOf(0, 1), aggregate.photos.map { it.orderIndex })
         assertEquals(2, aggregate.tags.size)
-        assertTrue(aggregate.tags.any { it.type == TagType.PLACE && it.value == "Waterloo Park" })
+        assertTrue(aggregate.tags.any { it.type == TagType.LOCATION && it.value == "Waterloo Park" })
         assertTrue(aggregate.tags.any { it.type == TagType.KEYWORD && it.value == "hike" })
     }
 
@@ -115,8 +115,8 @@ class RoomJournalingRepositoryTest {
                 entryDateEpochDay = 19_002L,
                 title = "Beach day",
                 reflectionText = "Sunny afternoon at the beach",
-                photos = emptyList(),
-                tags = listOf(TagDraft(type = TagType.PLACE, value = "Santa Cruz")),
+                photos = listOf(PhotoAssetDraft(contentUri = "content://photos/beach")),
+                tags = listOf(TagDraft(type = TagType.LOCATION, value = "Santa Cruz")),
             ),
         )
 
@@ -125,7 +125,7 @@ class RoomJournalingRepositoryTest {
                 entryDateEpochDay = 19_002L,
                 title = "Gym",
                 reflectionText = "Strength training",
-                photos = emptyList(),
+                photos = listOf(PhotoAssetDraft(contentUri = "content://photos/gym")),
                 tags = listOf(TagDraft(type = TagType.KEYWORD, value = "fitness")),
             ),
         )
@@ -139,6 +139,37 @@ class RoomJournalingRepositoryTest {
         assertEquals(1, byTag.size)
         assertEquals("Beach day", byTag.first().title)
         assertTrue(none.isEmpty())
+    }
+
+    @Test
+    fun observePhotosByTag_filtersPhotosByTag() = runBlocking {
+        repository.createEntryAggregate(
+            CreateJournalEntryInput(
+                entryDateEpochDay = 19_300L,
+                title = "Tagged photos",
+                reflectionText = "Contains a person tag",
+                photos = listOf(
+                    PhotoAssetDraft(contentUri = "content://photos/person-1"),
+                    PhotoAssetDraft(contentUri = "content://photos/person-2"),
+                ),
+                tags = listOf(TagDraft(type = TagType.PERSON, value = "Sam")),
+            ),
+        )
+
+        repository.createEntryAggregate(
+            CreateJournalEntryInput(
+                entryDateEpochDay = 19_301L,
+                title = "Other photos",
+                reflectionText = "Location only",
+                photos = listOf(PhotoAssetDraft(contentUri = "content://photos/location-only")),
+                tags = listOf(TagDraft(type = TagType.LOCATION, value = "Toronto")),
+            ),
+        )
+
+        val photosWithSam = repository.observePhotosByTag(TagType.PERSON, "Sam").first()
+
+        assertEquals(2, photosWithSam.size)
+        assertTrue(photosWithSam.all { it.contentUri.contains("person-") })
     }
 
     @Test

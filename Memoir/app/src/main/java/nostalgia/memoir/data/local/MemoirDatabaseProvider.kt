@@ -20,6 +20,7 @@ object MemoirDatabaseProvider {
                 )
                 .addMigrations(MIGRATION_1_2)
                 .addMigrations(MIGRATION_2_3)
+                .addMigrations(MIGRATION_3_4)
                 .build()
                 .also { created -> instance = created }
         }
@@ -99,6 +100,37 @@ object MemoirDatabaseProvider {
             db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_album_photo_photoId` ON `album_photo` (`photoId`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_album_photo_orderIndex` ON `album_photo` (`orderIndex`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_album_photo_addedAt` ON `album_photo` (`addedAt`)")
+        }
+    }
+
+    private val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `photo_tag` (
+                    `photoId` TEXT NOT NULL,
+                    `tagId` TEXT NOT NULL,
+                    PRIMARY KEY(`photoId`, `tagId`),
+                    FOREIGN KEY(`photoId`) REFERENCES `photo_asset`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`tagId`) REFERENCES `tag`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_photo_tag_photoId` ON `photo_tag` (`photoId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_photo_tag_tagId` ON `photo_tag` (`tagId`)")
+
+            db.execSQL("UPDATE tag SET type = 'LOCATION' WHERE type = 'PLACE'")
+            db.execSQL("DELETE FROM tag WHERE type NOT IN ('PERSON', 'LOCATION', 'KEYWORD')")
+
+            db.execSQL(
+                """
+                INSERT OR IGNORE INTO photo_tag(photoId, tagId)
+                SELECT ep.photoId, et.tagId
+                FROM entry_tag et
+                INNER JOIN entry_photo ep ON ep.entryId = et.entryId
+                INNER JOIN tag t ON t.id = et.tagId
+                """.trimIndent(),
+            )
         }
     }
 }

@@ -5,13 +5,13 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 
 @Entity(
-    tableName = "entry_tag",
-    primaryKeys = ["entryId", "tagId"],
+    tableName = "photo_tag",
+    primaryKeys = ["photoId", "tagId"],
     foreignKeys = [
         ForeignKey(
-            entity = JournalEntryEntity::class,
+            entity = PhotoAssetEntity::class,
             parentColumns = ["id"],
-            childColumns = ["entryId"],
+            childColumns = ["photoId"],
             onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
@@ -22,11 +22,11 @@ import androidx.room.Index
         ),
     ],
     indices = [
-        Index(value = ["entryId"]),
+        Index(value = ["photoId"]),
         Index(value = ["tagId"]),
     ],
 )
-data class EntryTagCrossRef(
-    val entryId: String,
+data class PhotoTagCrossRef(
+    val photoId: String,
     val tagId: String,
 )

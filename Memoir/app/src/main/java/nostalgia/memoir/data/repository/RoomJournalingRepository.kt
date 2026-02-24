@@ -4,10 +4,11 @@ import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import nostalgia.memoir.data.local.MemoirDatabase
 import nostalgia.memoir.data.local.entities.EntryPhotoCrossRef
-import nostalgia.memoir.data.local.entities.EntryTagCrossRef
 import nostalgia.memoir.data.local.entities.JournalEntryEntity
 import nostalgia.memoir.data.local.entities.PhotoAssetEntity
+import nostalgia.memoir.data.local.entities.PhotoTagCrossRef
 import nostalgia.memoir.data.local.entities.TagEntity
+import nostalgia.memoir.data.local.entities.TagType
 import nostalgia.memoir.data.model.CreateJournalEntryInput
 import nostalgia.memoir.data.model.JournalEntryAggregate
 import nostalgia.memoir.data.model.LinkedPhotoAsset
@@ -24,7 +25,7 @@ class RoomJournalingRepository(
     private val photoAssetDao = database.photoAssetDao()
     private val entryPhotoDao = database.entryPhotoDao()
     private val tagDao = database.tagDao()
-    private val entryTagDao = database.entryTagDao()
+    private val photoTagDao = database.photoTagDao()
 
     override suspend fun createEntryAggregate(input: CreateJournalEntryInput): String {
         val now = System.currentTimeMillis()
@@ -55,14 +56,11 @@ class RoomJournalingRepository(
             }
 
             val tagIds = resolveTagIds(input.tags, now)
-            if (tagIds.isNotEmpty()) {
-                val entryTags = tagIds.map { tagId ->
-                    EntryTagCrossRef(
-                        entryId = entryId,
-                        tagId = tagId,
-                    )
+            if (tagIds.isNotEmpty() && photoIdsInOrder.isNotEmpty()) {
+                val photoTagLinks = photoIdsInOrder.flatMap { photoId ->
+                    tagIds.map { tagId -> PhotoTagCrossRef(photoId = photoId, tagId = tagId) }
                 }
-                entryTagDao.upsertAll(entryTags)
+                photoTagDao.upsertAll(photoTagLinks)
             }
         }
 
@@ -96,17 +94,12 @@ class RoomJournalingRepository(
                 )
             }
 
-            entryTagDao.deleteByEntryId(input.entryId)
             val tagIds = resolveTagIds(input.tags, now)
-            if (tagIds.isNotEmpty()) {
-                entryTagDao.upsertAll(
-                    tagIds.map { tagId ->
-                        EntryTagCrossRef(
-                            entryId = input.entryId,
-                            tagId = tagId,
-                        )
-                    },
-                )
+            if (tagIds.isNotEmpty() && photoIdsInOrder.isNotEmpty()) {
+                val photoTagLinks = photoIdsInOrder.flatMap { photoId ->
+                    tagIds.map { tagId -> PhotoTagCrossRef(photoId = photoId, tagId = tagId) }
+                }
+                photoTagDao.upsertAll(photoTagLinks)
             }
         }
 
@@ -128,12 +121,13 @@ class RoomJournalingRepository(
             }
         }
 
-        val tagLinks = entryTagDao.getByEntryId(entryId)
+        val tagLinks = if (photoLinks.isEmpty()) emptyList() else photoTagDao.getByPhotoIds(photoLinks.map { it.photoId })
         val tags = if (tagLinks.isEmpty()) {
             emptyList()
         } else {
-            val tagsById = tagDao.getByIds(tagLinks.map { it.tagId }).associateBy { it.id }
-            tagLinks.mapNotNull { link -> tagsById[link.tagId] }
+            val distinctTagIds = tagLinks.map { it.tagId }.distinct()
+            val tagsById = tagDao.getByIds(distinctTagIds).associateBy { it.id }
+            distinctTagIds.mapNotNull { tagId -> tagsById[tagId] }
         }
 
         return JournalEntryAggregate(
@@ -152,6 +146,9 @@ class RoomJournalingRepository(
 
     override fun searchEntries(query: String): Flow<List<JournalEntryEntity>> =
         journalEntryDao.search(query.trim())
+
+    override fun observePhotosByTag(type: TagType, value: String): Flow<List<PhotoAssetEntity>> =
+        photoAssetDao.observeByTag(type, value.trim())
 
     override suspend fun getLinkedPhotoUrisForEpochDay(epochDay: Long): List<String> =
         photoAssetDao.getLinkedPhotoUrisForEpochDay(epochDay)

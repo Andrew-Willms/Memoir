@@ -14,6 +14,7 @@ object JournalingUseCaseFactory {
             observeAllEntries = ObserveAllEntriesUseCase(repository),
             observeEntriesByDateRange = ObserveEntriesByDateRangeUseCase(repository),
             searchEntries = SearchEntriesUseCase(repository),
+            observePhotosByTag = ObservePhotosByTagUseCase(repository),
             getLinkedPhotoUrisForEpochDay = GetLinkedPhotoUrisForEpochDayUseCase(repository),
         )
     }

@@ -54,7 +54,7 @@ class DatabaseSelfTestRunner(
                             PhotoAssetDraft(contentUri = "content://photos/2"),
                         ),
                         tags = listOf(
-                            TagDraft(type = TagType.PLACE, value = "Waterloo Park"),
+                            TagDraft(type = TagType.LOCATION, value = "Waterloo Park"),
                             TagDraft(type = TagType.KEYWORD, value = "hike"),
                         ),
                     ),
@@ -105,8 +105,8 @@ class DatabaseSelfTestRunner(
                         entryDateEpochDay = 19_002L,
                         title = "Beach day",
                         reflectionText = "Sunny afternoon at the beach",
-                        photos = emptyList(),
-                        tags = listOf(TagDraft(type = TagType.PLACE, value = "Santa Cruz")),
+                        photos = listOf(PhotoAssetDraft(contentUri = "content://photos/beach")),
+                        tags = listOf(TagDraft(type = TagType.LOCATION, value = "Santa Cruz")),
                     ),
                 )
 
@@ -117,6 +117,23 @@ class DatabaseSelfTestRunner(
                 require(reflectionMatch.size == 1) { "Expected reflection search match" }
                 require(tagMatch.size == 1) { "Expected tag search match" }
                 require(none.isEmpty()) { "Expected no matches for nonexistent query" }
+            },
+            runJournalingTest("Filter photos by tag") { repository ->
+                repository.createEntryAggregate(
+                    CreateJournalEntryInput(
+                        entryDateEpochDay = 19_003L,
+                        title = "People",
+                        reflectionText = "Tagged people photos",
+                        photos = listOf(
+                            PhotoAssetDraft(contentUri = "content://photos/person-1"),
+                            PhotoAssetDraft(contentUri = "content://photos/person-2"),
+                        ),
+                        tags = listOf(TagDraft(type = TagType.PERSON, value = "Sam")),
+                    ),
+                )
+
+                val taggedPhotos = repository.observePhotosByTag(TagType.PERSON, "Sam").first()
+                require(taggedPhotos.size == 2) { "Expected 2 photos for PERSON/Sam filter" }
             },
             runJournalingTest("Date range query") { repository ->
                 repository.createEntryAggregate(

@@ -7,5 +7,6 @@ data class JournalingUseCases(
     val observeAllEntries: ObserveAllEntriesUseCase,
     val observeEntriesByDateRange: ObserveEntriesByDateRangeUseCase,
     val searchEntries: SearchEntriesUseCase,
+    val observePhotosByTag: ObservePhotosByTagUseCase,
     val getLinkedPhotoUrisForEpochDay: GetLinkedPhotoUrisForEpochDayUseCase,
 )

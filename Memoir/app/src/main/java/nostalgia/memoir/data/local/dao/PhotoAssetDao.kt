@@ -5,7 +5,9 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import kotlinx.coroutines.flow.Flow
 import nostalgia.memoir.data.local.entities.PhotoAssetEntity
+import nostalgia.memoir.data.local.entities.TagType
 
 @Dao
 interface PhotoAssetDao {
@@ -35,4 +37,16 @@ interface PhotoAssetDao {
         """,
     )
     suspend fun getLinkedPhotoUrisForEpochDay(epochDay: Long): List<String>
+
+    @Query(
+        """
+        SELECT DISTINCT pa.*
+        FROM photo_asset pa
+        INNER JOIN photo_tag pt ON pt.photoId = pa.id
+        INNER JOIN tag t ON t.id = pt.tagId
+        WHERE t.type = :type AND t.value = :value
+        ORDER BY pa.updatedAt DESC
+        """,
+    )
+    fun observeByTag(type: TagType, value: String): Flow<List<PhotoAssetEntity>>
 }
