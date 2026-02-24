@@ -4,13 +4,32 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.Alignment
+import nostalgia.memoir.diagnostics.DatabaseSelfTestResult
+import nostalgia.memoir.diagnostics.DatabaseSelfTestRunner
 import nostalgia.memoir.ui.theme.MemoirTheme
 
 class MainActivity : ComponentActivity() {
@@ -20,10 +39,20 @@ class MainActivity : ComponentActivity() {
         setContent {
             MemoirTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    if (BuildConfig.DEBUG) {
+                        DatabaseSelfTestScreen(
+                            runner = DatabaseSelfTestRunner(applicationContext),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(innerPadding),
+                        )
+                    } else {
+                        ReleaseHomePlaceholder(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(innerPadding),
+                        )
+                    }
                 }
             }
         }
@@ -31,17 +60,101 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
+fun DatabaseSelfTestScreen(
+    runner: DatabaseSelfTestRunner,
+    modifier: Modifier = Modifier,
+) {
+    var isRunning by remember { mutableStateOf(true) }
+    var results by remember { mutableStateOf<List<DatabaseSelfTestResult>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        results = runner.runAll()
+        isRunning = false
+    }
+
+    Column(
+        modifier = modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = "Memoir Database Self-Tests",
+            fontWeight = FontWeight.Bold,
+        )
+
+        if (isRunning) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                CircularProgressIndicator(modifier = Modifier.height(24.dp))
+                Text("Running tests...")
+            }
+        } else {
+            val passedCount = results.count { it.passed }
+            Text("$passedCount/${results.size} tests passed")
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(results) { result ->
+                    TestResultRow(result = result)
+                    HorizontalDivider()
+                }
+            }
+        }
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
+fun DatabaseSelfTestPreview() {
     MemoirTheme {
-        Greeting("Android")
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("Memoir Database Self-Tests", fontWeight = FontWeight.Bold)
+            TestResultRow(
+                result = DatabaseSelfTestResult(
+                    name = "Create entry aggregate",
+                    passed = true,
+                    details = "Passed",
+                ),
+            )
+            TestResultRow(
+                result = DatabaseSelfTestResult(
+                    name = "Search entries",
+                    passed = false,
+                    details = "Expected 1 match, found 0",
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReleaseHomePlaceholder(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(text = "Memoir")
+        Text(text = "Release build: diagnostics screen disabled")
+    }
+}
+
+@Composable
+private fun TestResultRow(result: DatabaseSelfTestResult) {
+    val marker = if (result.passed) "✅" else "❌"
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(text = "$marker ${result.name}")
+        Text(text = result.details)
     }
 }
