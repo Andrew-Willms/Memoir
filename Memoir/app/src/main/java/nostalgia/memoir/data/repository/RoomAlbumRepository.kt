@@ -8,12 +8,16 @@ import nostalgia.memoir.data.local.entities.AlbumEntity
 import nostalgia.memoir.data.local.entities.AlbumEntryCrossRef
 import nostalgia.memoir.data.local.entities.AlbumMemberEntity
 import nostalgia.memoir.data.local.entities.AlbumMemberStatus
+import nostalgia.memoir.data.local.entities.AlbumPhotoCrossRef
 import nostalgia.memoir.data.local.entities.AlbumRole
 import nostalgia.memoir.data.local.entities.JournalEntryEntity
+import nostalgia.memoir.data.local.entities.PhotoAssetEntity
 import nostalgia.memoir.data.model.AddEntryToAlbumInput
+import nostalgia.memoir.data.model.AddPhotoToAlbumInput
 import nostalgia.memoir.data.model.AlbumAggregate
 import nostalgia.memoir.data.model.CreateAlbumInput
 import nostalgia.memoir.data.model.LinkedAlbumEntry
+import nostalgia.memoir.data.model.LinkedAlbumPhoto
 import nostalgia.memoir.data.model.UpsertAlbumMemberInput
 import java.util.UUID
 
@@ -22,9 +26,11 @@ class RoomAlbumRepository(
 ) : AlbumRepository {
 
     private val albumDao = database.albumDao()
+    private val albumPhotoDao = database.albumPhotoDao()
     private val albumEntryDao = database.albumEntryDao()
     private val albumMemberDao = database.albumMemberDao()
     private val journalEntryDao = database.journalEntryDao()
+    private val photoAssetDao = database.photoAssetDao()
 
     override suspend fun createAlbum(input: CreateAlbumInput): String {
         val now = System.currentTimeMillis()
@@ -75,6 +81,25 @@ class RoomAlbumRepository(
 
     override suspend fun getAlbumAggregate(albumId: String): AlbumAggregate? {
         val album = albumDao.getById(albumId) ?: return null
+
+        val photoLinks = albumPhotoDao.getLinksByAlbumId(albumId)
+        val photosById = if (photoLinks.isEmpty()) {
+            emptyMap()
+        } else {
+            photoAssetDao.getByIds(photoLinks.map { it.photoId }).associateBy { it.id }
+        }
+
+        val linkedPhotos = photoLinks.mapNotNull { link ->
+            photosById[link.photoId]?.let { photo ->
+                LinkedAlbumPhoto(
+                    photo = photo,
+                    orderIndex = link.orderIndex,
+                    addedAt = link.addedAt,
+                    addedBy = link.addedBy,
+                )
+            }
+        }
+
         val links = albumEntryDao.getLinksByAlbumId(albumId)
         val entriesById = if (links.isEmpty()) {
             emptyMap()
@@ -96,9 +121,37 @@ class RoomAlbumRepository(
 
         return AlbumAggregate(
             album = album,
+            photos = linkedPhotos,
             entries = linkedEntries,
             members = members,
         )
+    }
+
+    override suspend fun addPhotoToAlbum(input: AddPhotoToAlbumInput): Boolean {
+        val album = albumDao.getById(input.albumId) ?: return false
+        val photo = photoAssetDao.getById(input.photoId) ?: return false
+        val now = System.currentTimeMillis()
+        val orderIndex = input.orderIndex ?: albumPhotoDao.nextOrderIndex(input.albumId)
+
+        albumPhotoDao.upsert(
+            AlbumPhotoCrossRef(
+                albumId = album.id,
+                photoId = photo.id,
+                orderIndex = orderIndex,
+                addedAt = now,
+                addedBy = input.addedBy,
+            ),
+        )
+
+        albumDao.update(album.copy(updatedAt = now))
+        return true
+    }
+
+    override suspend fun removePhotoFromAlbum(albumId: String, photoId: String): Boolean {
+        val album = albumDao.getById(albumId) ?: return false
+        albumPhotoDao.deleteLink(albumId, photoId)
+        albumDao.update(album.copy(updatedAt = System.currentTimeMillis()))
+        return true
     }
 
     override suspend fun addEntryToAlbum(input: AddEntryToAlbumInput): Boolean {
@@ -152,6 +205,9 @@ class RoomAlbumRepository(
 
     override fun observeAllAlbums(): Flow<List<AlbumEntity>> =
         albumDao.observeAll()
+
+    override fun observePhotosForAlbum(albumId: String): Flow<List<PhotoAssetEntity>> =
+        albumPhotoDao.observePhotosForAlbum(albumId)
 
     override fun observeEntriesForAlbum(albumId: String): Flow<List<JournalEntryEntity>> =
         albumEntryDao.observeEntriesForAlbum(albumId)

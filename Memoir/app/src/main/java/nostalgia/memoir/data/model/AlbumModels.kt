@@ -6,6 +6,7 @@ import nostalgia.memoir.data.local.entities.AlbumMemberStatus
 import nostalgia.memoir.data.local.entities.AlbumRole
 import nostalgia.memoir.data.local.entities.AlbumVisibility
 import nostalgia.memoir.data.local.entities.JournalEntryEntity
+import nostalgia.memoir.data.local.entities.PhotoAssetEntity
 
 data class CreateAlbumInput(
     val name: String,
@@ -16,6 +17,13 @@ data class CreateAlbumInput(
 data class AddEntryToAlbumInput(
     val albumId: String,
     val entryId: String,
+    val addedBy: String? = null,
+)
+
+data class AddPhotoToAlbumInput(
+    val albumId: String,
+    val photoId: String,
+    val orderIndex: Int? = null,
     val addedBy: String? = null,
 )
 
@@ -32,8 +40,16 @@ data class LinkedAlbumEntry(
     val addedBy: String?,
 )
 
+data class LinkedAlbumPhoto(
+    val photo: PhotoAssetEntity,
+    val orderIndex: Int,
+    val addedAt: Long,
+    val addedBy: String?,
+)
+
 data class AlbumAggregate(
     val album: AlbumEntity,
+    val photos: List<LinkedAlbumPhoto>,
     val entries: List<LinkedAlbumEntry>,
     val members: List<AlbumMemberEntity>,
 )

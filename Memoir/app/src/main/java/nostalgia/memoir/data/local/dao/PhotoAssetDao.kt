@@ -19,6 +19,9 @@ interface PhotoAssetDao {
     @Query("SELECT * FROM photo_asset WHERE contentUri = :contentUri LIMIT 1")
     suspend fun getByContentUri(contentUri: String): PhotoAssetEntity?
 
+    @Query("SELECT * FROM photo_asset WHERE id = :photoId LIMIT 1")
+    suspend fun getById(photoId: String): PhotoAssetEntity?
+
     @Query("SELECT * FROM photo_asset WHERE id IN (:photoIds)")
     suspend fun getByIds(photoIds: List<String>): List<PhotoAssetEntity>
 

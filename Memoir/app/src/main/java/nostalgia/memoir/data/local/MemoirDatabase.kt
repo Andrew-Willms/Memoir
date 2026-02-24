@@ -7,6 +7,7 @@ import nostalgia.memoir.data.local.converters.RoomTypeConverters
 import nostalgia.memoir.data.local.dao.AlbumDao
 import nostalgia.memoir.data.local.dao.AlbumEntryDao
 import nostalgia.memoir.data.local.dao.AlbumMemberDao
+import nostalgia.memoir.data.local.dao.AlbumPhotoDao
 import nostalgia.memoir.data.local.dao.EntryPhotoDao
 import nostalgia.memoir.data.local.dao.EntryTagDao
 import nostalgia.memoir.data.local.dao.JournalEntryDao
@@ -15,6 +16,7 @@ import nostalgia.memoir.data.local.dao.TagDao
 import nostalgia.memoir.data.local.entities.AlbumEntity
 import nostalgia.memoir.data.local.entities.AlbumEntryCrossRef
 import nostalgia.memoir.data.local.entities.AlbumMemberEntity
+import nostalgia.memoir.data.local.entities.AlbumPhotoCrossRef
 import nostalgia.memoir.data.local.entities.EntryPhotoCrossRef
 import nostalgia.memoir.data.local.entities.EntryTagCrossRef
 import nostalgia.memoir.data.local.entities.JournalEntryEntity
@@ -31,8 +33,9 @@ import nostalgia.memoir.data.local.entities.TagEntity
         AlbumEntity::class,
         AlbumEntryCrossRef::class,
         AlbumMemberEntity::class,
+        AlbumPhotoCrossRef::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(RoomTypeConverters::class)
@@ -45,6 +48,7 @@ abstract class MemoirDatabase : RoomDatabase() {
     abstract fun albumDao(): AlbumDao
     abstract fun albumEntryDao(): AlbumEntryDao
     abstract fun albumMemberDao(): AlbumMemberDao
+    abstract fun albumPhotoDao(): AlbumPhotoDao
 
     companion object {
         const val DATABASE_NAME: String = "memoir.db"

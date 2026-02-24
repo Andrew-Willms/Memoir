@@ -10,8 +10,10 @@ import nostalgia.memoir.data.local.entities.AlbumRole
 import nostalgia.memoir.data.local.entities.AlbumVisibility
 import nostalgia.memoir.data.local.entities.TagType
 import nostalgia.memoir.data.model.AddEntryToAlbumInput
+import nostalgia.memoir.data.model.AddPhotoToAlbumInput
 import nostalgia.memoir.data.model.CreateAlbumInput
 import nostalgia.memoir.data.model.CreateJournalEntryInput
+import nostalgia.memoir.data.model.PhotoAssetDraft
 import nostalgia.memoir.data.model.TagDraft
 import nostalgia.memoir.data.model.UpsertAlbumMemberInput
 import org.junit.After
@@ -61,6 +63,7 @@ class RoomAlbumRepositoryTest {
         assertNotNull(aggregate)
         assertEquals("Vietnam Trip", aggregate!!.album.name)
         assertEquals("user-1", aggregate.album.ownerUserId)
+        assertTrue(aggregate.photos.isEmpty())
         assertEquals(1, aggregate.members.size)
         assertEquals(AlbumRole.OWNER, aggregate.members.first().role)
         assertEquals(AlbumMemberStatus.ACTIVE, aggregate.members.first().status)
@@ -96,7 +99,8 @@ class RoomAlbumRepositoryTest {
         assertTrue(added)
         val aggregateAfterAdd = albumRepository.getAlbumAggregate(albumId)
         assertNotNull(aggregateAfterAdd)
-        assertEquals(1, aggregateAfterAdd!!.entries.size)
+        assertTrue(aggregateAfterAdd!!.photos.isEmpty())
+        assertEquals(1, aggregateAfterAdd.entries.size)
         assertEquals(entryId, aggregateAfterAdd.entries.first().entry.id)
 
         val removed = albumRepository.removeEntryFromAlbum(albumId, entryId)
@@ -133,5 +137,74 @@ class RoomAlbumRepositoryTest {
         val members = albumRepository.observeMembersForAlbum(ownerAlbum).first()
         assertEquals(2, members.size)
         assertTrue(members.any { it.memberId == "friend-1" && it.role == AlbumRole.EDITOR })
+    }
+
+    @Test
+    fun addAndRemovePhotoFromAlbum_updatesAggregatePhotos() = runBlocking {
+        val journalEntryId = journalingRepository.createEntryAggregate(
+            CreateJournalEntryInput(
+                entryDateEpochDay = 20_100L,
+                title = "Photo source",
+                reflectionText = "Source",
+                photos = listOf(
+                    PhotoAssetDraft(contentUri = "content://album-photos/1"),
+                    PhotoAssetDraft(contentUri = "content://album-photos/2"),
+                ),
+                tags = emptyList(),
+            ),
+        )
+
+        val sourceAggregate = journalingRepository.getEntryAggregate(journalEntryId)
+        assertNotNull(sourceAggregate)
+        val photoId = sourceAggregate!!.photos.first().photo.id
+
+        val albumId = albumRepository.createAlbum(
+            CreateAlbumInput(name = "Album Photos", ownerUserId = "owner-1"),
+        )
+
+        val added = albumRepository.addPhotoToAlbum(
+            AddPhotoToAlbumInput(albumId = albumId, photoId = photoId, addedBy = "owner-1"),
+        )
+        assertTrue(added)
+
+        val aggregateAfterAdd = albumRepository.getAlbumAggregate(albumId)
+        assertNotNull(aggregateAfterAdd)
+        assertEquals(1, aggregateAfterAdd!!.photos.size)
+        assertEquals(photoId, aggregateAfterAdd.photos.first().photo.id)
+
+        val removed = albumRepository.removePhotoFromAlbum(albumId, photoId)
+        assertTrue(removed)
+
+        val aggregateAfterRemove = albumRepository.getAlbumAggregate(albumId)
+        assertNotNull(aggregateAfterRemove)
+        assertTrue(aggregateAfterRemove!!.photos.isEmpty())
+    }
+
+    @Test
+    fun photoBelongsToSingleAlbum_whenRelinkedMovesAlbum() = runBlocking {
+        val journalEntryId = journalingRepository.createEntryAggregate(
+            CreateJournalEntryInput(
+                entryDateEpochDay = 20_200L,
+                title = "Single album photo",
+                reflectionText = "Source",
+                photos = listOf(PhotoAssetDraft(contentUri = "content://album-photos/single")),
+                tags = emptyList(),
+            ),
+        )
+
+        val photoId = journalingRepository.getEntryAggregate(journalEntryId)!!.photos.first().photo.id
+
+        val albumA = albumRepository.createAlbum(CreateAlbumInput(name = "A", ownerUserId = "owner-1"))
+        val albumB = albumRepository.createAlbum(CreateAlbumInput(name = "B", ownerUserId = "owner-1"))
+
+        assertTrue(albumRepository.addPhotoToAlbum(AddPhotoToAlbumInput(albumId = albumA, photoId = photoId)))
+        assertTrue(albumRepository.addPhotoToAlbum(AddPhotoToAlbumInput(albumId = albumB, photoId = photoId)))
+
+        val albumAAggregate = albumRepository.getAlbumAggregate(albumA)!!
+        val albumBAggregate = albumRepository.getAlbumAggregate(albumB)!!
+
+        assertTrue(albumAAggregate.photos.isEmpty())
+        assertEquals(1, albumBAggregate.photos.size)
+        assertEquals(photoId, albumBAggregate.photos.first().photo.id)
     }
 }

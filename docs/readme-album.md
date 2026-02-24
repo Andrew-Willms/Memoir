@@ -7,6 +7,7 @@ This document describes the new Album database architecture and APIs added to th
 Implemented Album persistence and interaction APIs on top of Room:
 
 - Album table and enums
+- Album-photo join table (direct album photo ownership)
 - Album-entry join table (many-to-many with journal entries)
 - Album-member table (for owner/editor/viewer + status)
 - DAOs
@@ -28,6 +29,12 @@ Implemented Album persistence and interaction APIs on top of Room:
   - file: `Memoir/app/src/main/java/nostalgia/memoir/data/local/entities/AlbumEntryCrossRef.kt`
   - links `album` ↔ `journal_entry`
   - fields: `albumId`, `entryId`, `addedAt`, `addedBy`
+
+- `AlbumPhotoCrossRef`
+  - file: `Memoir/app/src/main/java/nostalgia/memoir/data/local/entities/AlbumPhotoCrossRef.kt`
+  - links `album` ↔ `photo_asset`
+  - fields: `albumId`, `photoId`, `orderIndex`, `addedAt`, `addedBy`
+  - `photoId` is unique, so a photo belongs to one album at a time
 
 - `AlbumMemberEntity`
   - file: `Memoir/app/src/main/java/nostalgia/memoir/data/local/entities/AlbumMemberEntity.kt`
@@ -53,7 +60,7 @@ files:
 `MemoirDatabase` now includes album entities and DAOs.
 
 - file: `Memoir/app/src/main/java/nostalgia/memoir/data/local/MemoirDatabase.kt`
-- schema version bumped from `1` → `2`
+- schema version bumped from `1` → `3`
 
 ### Migration
 
@@ -61,6 +68,9 @@ Added migration `1 -> 2` to create:
 - `album`
 - `album_entry`
 - `album_member`
+
+Added migration `2 -> 3` to create:
+- `album_photo`
 
 - file: `Memoir/app/src/main/java/nostalgia/memoir/data/local/MemoirDatabaseProvider.kt`
 
@@ -89,6 +99,12 @@ Added migration `1 -> 2` to create:
   - observe entry rows for an album
   - file: `Memoir/app/src/main/java/nostalgia/memoir/data/local/dao/AlbumEntryDao.kt`
 
+- `AlbumPhotoDao`
+  - upsert/delete album-photo links
+  - list links by album with ordering
+  - observe photo rows for an album
+  - file: `Memoir/app/src/main/java/nostalgia/memoir/data/local/dao/AlbumPhotoDao.kt`
+
 - `AlbumMemberDao`
   - upsert/delete members
   - observe members for an album
@@ -106,7 +122,9 @@ Album input/output models:
 
 - `CreateAlbumInput`
 - `AddEntryToAlbumInput`
+- `AddPhotoToAlbumInput`
 - `UpsertAlbumMemberInput`
+- `LinkedAlbumPhoto`
 - `LinkedAlbumEntry`
 - `AlbumAggregate`
 
@@ -127,11 +145,14 @@ Implemented operations:
 - `renameAlbum`
 - `getAlbumAggregate`
 - `addEntryToAlbum`
+- `addPhotoToAlbum`
 - `removeEntryFromAlbum`
+- `removePhotoFromAlbum`
 - `upsertAlbumMember`
 - `removeAlbumMember`
 - `observeAlbumsByOwner`
 - `observeAllAlbums`
+- `observePhotosForAlbum`
 - `observeEntriesForAlbum`
 - `observeMembersForAlbum`
 
@@ -139,6 +160,7 @@ Behavior details:
 
 - Creating an album also creates an active owner membership (`OWNER`, `ACTIVE`).
 - Adding/removing entries updates album `updatedAt`.
+- Adding/removing photos updates album `updatedAt`.
 - Member upserts/removals update album `updatedAt`.
 
 ---
@@ -151,11 +173,14 @@ Added dedicated album use-cases and bundle/factory:
 - `RenameAlbumUseCase`
 - `GetAlbumAggregateUseCase`
 - `AddEntryToAlbumUseCase`
+- `AddPhotoToAlbumUseCase`
 - `RemoveEntryFromAlbumUseCase`
+- `RemovePhotoFromAlbumUseCase`
 - `UpsertAlbumMemberUseCase`
 - `RemoveAlbumMemberUseCase`
 - `ObserveAlbumsByOwnerUseCase`
 - `ObserveAllAlbumsUseCase`
+- `ObservePhotosForAlbumUseCase`
 - `ObserveEntriesForAlbumUseCase`
 - `ObserveMembersForAlbumUseCase`
 - `AlbumUseCases`
@@ -175,6 +200,8 @@ Added album repository unit tests:
 Coverage includes:
 
 - create album creates owner membership
+- add/remove direct album-photo behavior
+- one-photo-one-album constraint behavior
 - add/remove entry link behavior
 - observe albums by owner
 - upsert member and observe members

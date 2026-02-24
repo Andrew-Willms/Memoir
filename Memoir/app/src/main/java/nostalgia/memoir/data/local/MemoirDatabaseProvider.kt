@@ -19,6 +19,7 @@ object MemoirDatabaseProvider {
                     MemoirDatabase.DATABASE_NAME,
                 )
                 .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_2_3)
                 .build()
                 .also { created -> instance = created }
         }
@@ -75,6 +76,29 @@ object MemoirDatabaseProvider {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_album_member_albumId` ON `album_member` (`albumId`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_album_member_memberId` ON `album_member` (`memberId`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_album_member_status` ON `album_member` (`status`)")
+        }
+    }
+
+    private val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `album_photo` (
+                    `albumId` TEXT NOT NULL,
+                    `photoId` TEXT NOT NULL,
+                    `orderIndex` INTEGER NOT NULL,
+                    `addedAt` INTEGER NOT NULL,
+                    `addedBy` TEXT,
+                    PRIMARY KEY(`albumId`, `photoId`),
+                    FOREIGN KEY(`albumId`) REFERENCES `album`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`photoId`) REFERENCES `photo_asset`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_album_photo_albumId` ON `album_photo` (`albumId`)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_album_photo_photoId` ON `album_photo` (`photoId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_album_photo_orderIndex` ON `album_photo` (`orderIndex`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_album_photo_addedAt` ON `album_photo` (`addedAt`)")
         }
     }
 }

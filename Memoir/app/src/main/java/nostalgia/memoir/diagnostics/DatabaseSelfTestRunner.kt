@@ -9,6 +9,7 @@ import nostalgia.memoir.data.local.entities.AlbumRole
 import nostalgia.memoir.data.local.entities.AlbumVisibility
 import nostalgia.memoir.data.local.entities.TagType
 import nostalgia.memoir.data.model.AddEntryToAlbumInput
+import nostalgia.memoir.data.model.AddPhotoToAlbumInput
 import nostalgia.memoir.data.model.CreateAlbumInput
 import nostalgia.memoir.data.model.CreateJournalEntryInput
 import nostalgia.memoir.data.model.PhotoAssetDraft
@@ -253,6 +254,47 @@ class DatabaseSelfTestRunner(
                 val aggregateAfterRemove = albumRepository.getAlbumAggregate(albumId)
                 require(aggregateAfterRemove != null && aggregateAfterRemove.entries.isEmpty()) {
                     "Expected no linked entries after remove"
+                }
+            },
+            runAlbumTest("Add/remove direct photos in album") { albumRepository, journalingRepository ->
+                val entryId = journalingRepository.createEntryAggregate(
+                    CreateJournalEntryInput(
+                        entryDateEpochDay = 21_100L,
+                        title = "Photo Source",
+                        reflectionText = "Source entry",
+                        photos = listOf(
+                            PhotoAssetDraft(contentUri = "content://album-photo-tests/1"),
+                            PhotoAssetDraft(contentUri = "content://album-photo-tests/2"),
+                        ),
+                        tags = emptyList(),
+                    ),
+                )
+                val photoId = journalingRepository.getEntryAggregate(entryId)!!.photos.first().photo.id
+
+                val albumId = albumRepository.createAlbum(
+                    CreateAlbumInput(name = "Album Photos", ownerUserId = "owner-1"),
+                )
+
+                val added = albumRepository.addPhotoToAlbum(
+                    AddPhotoToAlbumInput(
+                        albumId = albumId,
+                        photoId = photoId,
+                        addedBy = "owner-1",
+                    ),
+                )
+                require(added) { "Expected addPhotoToAlbum=true" }
+
+                val aggregateAfterAdd = albumRepository.getAlbumAggregate(albumId)
+                require(aggregateAfterAdd != null && aggregateAfterAdd.photos.size == 1) {
+                    "Expected one linked album photo"
+                }
+
+                val removed = albumRepository.removePhotoFromAlbum(albumId, photoId)
+                require(removed) { "Expected removePhotoFromAlbum=true" }
+
+                val aggregateAfterRemove = albumRepository.getAlbumAggregate(albumId)
+                require(aggregateAfterRemove != null && aggregateAfterRemove.photos.isEmpty()) {
+                    "Expected no linked album photos after remove"
                 }
             },
             runAlbumTest("Observe albums by owner") { albumRepository, _ ->
