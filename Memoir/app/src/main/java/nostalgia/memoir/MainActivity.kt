@@ -11,23 +11,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import nostalgia.memoir.diagnostics.DatabaseSelfTestResult
 import nostalgia.memoir.diagnostics.DatabaseSelfTestRunner
 import nostalgia.memoir.diagnostics.DatabaseSelfTestSuite
@@ -58,6 +62,17 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+enum class AppDestinations(
+    val label: String,
+    val drawableId: Int,
+) {
+    HOME("Home", R.drawable.ic_launcher_background),
+    YOUR_ALBUMS("Your Albums", R.drawable.ic_launcher_background),
+    CAMERA("Camera", R.drawable.ic_launcher_background),
+    SHARED_ALBUMS("Shared Albums", R.drawable.ic_launcher_background),
+    SEARCH("Search", R.drawable.ic_launcher_background),
 }
 
 @Composable
