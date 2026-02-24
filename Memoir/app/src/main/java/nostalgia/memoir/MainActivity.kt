@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Alignment
 import nostalgia.memoir.diagnostics.DatabaseSelfTestResult
 import nostalgia.memoir.diagnostics.DatabaseSelfTestRunner
+import nostalgia.memoir.diagnostics.DatabaseSelfTestSuite
 import nostalgia.memoir.ui.theme.MemoirTheme
 
 class MainActivity : ComponentActivity() {
@@ -65,10 +66,10 @@ fun DatabaseSelfTestScreen(
     modifier: Modifier = Modifier,
 ) {
     var isRunning by remember { mutableStateOf(true) }
-    var results by remember { mutableStateOf<List<DatabaseSelfTestResult>>(emptyList()) }
+    var suites by remember { mutableStateOf<List<DatabaseSelfTestSuite>>(emptyList()) }
 
     LaunchedEffect(Unit) {
-        results = runner.runAll()
+        suites = runner.runAllSuites()
         isRunning = false
     }
 
@@ -90,6 +91,7 @@ fun DatabaseSelfTestScreen(
                 Text("Running tests...")
             }
         } else {
+            val results = suites.flatMap { it.results }
             val passedCount = results.count { it.passed }
             Text("$passedCount/${results.size} tests passed")
 
@@ -97,9 +99,18 @@ fun DatabaseSelfTestScreen(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(results) { result ->
-                    TestResultRow(result = result)
-                    HorizontalDivider()
+                suites.forEach { suite ->
+                    item {
+                        Text(
+                            text = suite.name,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+
+                    items(suite.results) { result ->
+                        TestResultRow(result = result)
+                        HorizontalDivider()
+                    }
                 }
             }
         }

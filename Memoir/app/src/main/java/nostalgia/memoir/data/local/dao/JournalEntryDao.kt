@@ -20,6 +20,9 @@ interface JournalEntryDao {
     @Query("SELECT * FROM journal_entry WHERE id = :entryId LIMIT 1")
     suspend fun getById(entryId: String): JournalEntryEntity?
 
+    @Query("SELECT * FROM journal_entry WHERE id IN (:entryIds)")
+    suspend fun getByIds(entryIds: List<String>): List<JournalEntryEntity>
+
     @Query(
         """
         SELECT *

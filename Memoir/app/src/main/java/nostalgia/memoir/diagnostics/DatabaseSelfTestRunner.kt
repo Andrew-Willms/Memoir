@@ -4,11 +4,18 @@ import android.content.Context
 import androidx.room.Room
 import kotlinx.coroutines.flow.first
 import nostalgia.memoir.data.local.MemoirDatabase
+import nostalgia.memoir.data.local.entities.AlbumMemberStatus
+import nostalgia.memoir.data.local.entities.AlbumRole
+import nostalgia.memoir.data.local.entities.AlbumVisibility
 import nostalgia.memoir.data.local.entities.TagType
+import nostalgia.memoir.data.model.AddEntryToAlbumInput
+import nostalgia.memoir.data.model.CreateAlbumInput
 import nostalgia.memoir.data.model.CreateJournalEntryInput
 import nostalgia.memoir.data.model.PhotoAssetDraft
 import nostalgia.memoir.data.model.TagDraft
+import nostalgia.memoir.data.model.UpsertAlbumMemberInput
 import nostalgia.memoir.data.model.UpdateJournalEntryInput
+import nostalgia.memoir.data.repository.RoomAlbumRepository
 import nostalgia.memoir.data.repository.RoomJournalingRepository
 
 data class DatabaseSelfTestResult(
@@ -17,13 +24,25 @@ data class DatabaseSelfTestResult(
     val details: String,
 )
 
+data class DatabaseSelfTestSuite(
+    val name: String,
+    val results: List<DatabaseSelfTestResult>,
+)
+
 class DatabaseSelfTestRunner(
     private val context: Context,
 ) {
 
-    suspend fun runAll(): List<DatabaseSelfTestResult> {
+    suspend fun runAllSuites(): List<DatabaseSelfTestSuite> {
         return listOf(
-            runTest("Create entry aggregate") { repository ->
+            DatabaseSelfTestSuite(name = "Journaling", results = runJournalingTests()),
+            DatabaseSelfTestSuite(name = "Albums", results = runAlbumTests()),
+        )
+    }
+
+    private suspend fun runJournalingTests(): List<DatabaseSelfTestResult> {
+        return listOf(
+            runJournalingTest("Create entry aggregate") { repository ->
                 val entryId = repository.createEntryAggregate(
                     CreateJournalEntryInput(
                         entryDateEpochDay = 19_000L,
@@ -45,7 +64,7 @@ class DatabaseSelfTestRunner(
                 require(aggregate.photos.size == 2) { "Expected 2 linked photos" }
                 require(aggregate.tags.size == 2) { "Expected 2 linked tags" }
             },
-            runTest("Update entry aggregate") { repository ->
+            runJournalingTest("Update entry aggregate") { repository ->
                 val entryId = repository.createEntryAggregate(
                     CreateJournalEntryInput(
                         entryDateEpochDay = 19_001L,
@@ -79,7 +98,7 @@ class DatabaseSelfTestRunner(
                 require(aggregate.photos.size == 1) { "Expected replaced photo links" }
                 require(aggregate.tags.size == 1) { "Expected replaced tag links" }
             },
-            runTest("Search entries") { repository ->
+            runJournalingTest("Search entries") { repository ->
                 repository.createEntryAggregate(
                     CreateJournalEntryInput(
                         entryDateEpochDay = 19_002L,
@@ -98,7 +117,7 @@ class DatabaseSelfTestRunner(
                 require(tagMatch.size == 1) { "Expected tag search match" }
                 require(none.isEmpty()) { "Expected no matches for nonexistent query" }
             },
-            runTest("Date range query") { repository ->
+            runJournalingTest("Date range query") { repository ->
                 repository.createEntryAggregate(
                     CreateJournalEntryInput(
                         entryDateEpochDay = 19_010L,
@@ -130,7 +149,7 @@ class DatabaseSelfTestRunner(
                 val ranged = repository.observeEntriesByDateRange(19_010L, 19_011L).first()
                 require(ranged.size == 2) { "Expected exactly 2 entries in date range" }
             },
-            runTest("Linked photo URIs by day") { repository ->
+            runJournalingTest("Linked photo URIs by day") { repository ->
                 repository.createEntryAggregate(
                     CreateJournalEntryInput(
                         entryDateEpochDay = 19_100L,
@@ -158,7 +177,7 @@ class DatabaseSelfTestRunner(
                 require(uris.contains("content://photos/today-1")) { "Missing expected URI 1" }
                 require(uris.contains("content://photos/today-2")) { "Missing expected URI 2" }
             },
-            runTest("Observe all persisted entries") { repository ->
+            runJournalingTest("Observe all persisted entries") { repository ->
                 repository.createEntryAggregate(
                     CreateJournalEntryInput(
                         entryDateEpochDay = 19_200L,
@@ -184,7 +203,90 @@ class DatabaseSelfTestRunner(
         )
     }
 
-    private suspend fun runTest(
+    private suspend fun runAlbumTests(): List<DatabaseSelfTestResult> {
+        return listOf(
+            runAlbumTest("Create album with owner member") { albumRepository, _ ->
+                val albumId = albumRepository.createAlbum(
+                    CreateAlbumInput(
+                        name = "Vietnam Trip",
+                        ownerUserId = "owner-1",
+                        visibility = AlbumVisibility.PRIVATE,
+                    ),
+                )
+
+                val aggregate = albumRepository.getAlbumAggregate(albumId)
+                require(aggregate != null) { "Expected created album aggregate" }
+                require(aggregate.members.any { it.memberId == "owner-1" && it.role == AlbumRole.OWNER }) {
+                    "Expected active owner membership"
+                }
+            },
+            runAlbumTest("Add/remove entry link in album") { albumRepository, journalingRepository ->
+                val entryId = journalingRepository.createEntryAggregate(
+                    CreateJournalEntryInput(
+                        entryDateEpochDay = 21_000L,
+                        title = "Trip note",
+                        reflectionText = "Entry for album linking",
+                        photos = emptyList(),
+                        tags = emptyList(),
+                    ),
+                )
+                val albumId = albumRepository.createAlbum(
+                    CreateAlbumInput(name = "Family", ownerUserId = "owner-1"),
+                )
+
+                val added = albumRepository.addEntryToAlbum(
+                    AddEntryToAlbumInput(
+                        albumId = albumId,
+                        entryId = entryId,
+                        addedBy = "owner-1",
+                    ),
+                )
+                require(added) { "Expected addEntryToAlbum=true" }
+
+                val aggregateAfterAdd = albumRepository.getAlbumAggregate(albumId)
+                require(aggregateAfterAdd != null && aggregateAfterAdd.entries.size == 1) {
+                    "Expected one linked entry"
+                }
+
+                val removed = albumRepository.removeEntryFromAlbum(albumId, entryId)
+                require(removed) { "Expected removeEntryFromAlbum=true" }
+                val aggregateAfterRemove = albumRepository.getAlbumAggregate(albumId)
+                require(aggregateAfterRemove != null && aggregateAfterRemove.entries.isEmpty()) {
+                    "Expected no linked entries after remove"
+                }
+            },
+            runAlbumTest("Observe albums by owner") { albumRepository, _ ->
+                albumRepository.createAlbum(CreateAlbumInput(name = "Owner Album", ownerUserId = "owner-a"))
+                albumRepository.createAlbum(CreateAlbumInput(name = "Other Album", ownerUserId = "owner-b"))
+
+                val ownerAlbums = albumRepository.observeAlbumsByOwner("owner-a").first()
+                require(ownerAlbums.size == 1) { "Expected exactly one owner album" }
+                require(ownerAlbums.first().name == "Owner Album") { "Unexpected owner album name" }
+            },
+            runAlbumTest("Upsert member and observe members") { albumRepository, _ ->
+                val albumId = albumRepository.createAlbum(
+                    CreateAlbumInput(name = "Shared Album", ownerUserId = "owner-1"),
+                )
+
+                val upserted = albumRepository.upsertAlbumMember(
+                    UpsertAlbumMemberInput(
+                        albumId = albumId,
+                        memberId = "friend-1",
+                        role = AlbumRole.EDITOR,
+                        status = AlbumMemberStatus.ACTIVE,
+                    ),
+                )
+                require(upserted) { "Expected upsertAlbumMember=true" }
+
+                val members = albumRepository.observeMembersForAlbum(albumId).first()
+                require(members.any { it.memberId == "friend-1" && it.role == AlbumRole.EDITOR }) {
+                    "Expected editor member in album"
+                }
+            },
+        )
+    }
+
+    private suspend fun runJournalingTest(
         name: String,
         block: suspend (RoomJournalingRepository) -> Unit,
     ): DatabaseSelfTestResult {
@@ -196,6 +298,31 @@ class DatabaseSelfTestRunner(
         return try {
             val repository = RoomJournalingRepository(database)
             block(repository)
+            DatabaseSelfTestResult(name = name, passed = true, details = "Passed")
+        } catch (error: Throwable) {
+            DatabaseSelfTestResult(
+                name = name,
+                passed = false,
+                details = error.message ?: error::class.java.simpleName,
+            )
+        } finally {
+            database.close()
+        }
+    }
+
+    private suspend fun runAlbumTest(
+        name: String,
+        block: suspend (RoomAlbumRepository, RoomJournalingRepository) -> Unit,
+    ): DatabaseSelfTestResult {
+        val database = Room.inMemoryDatabaseBuilder(
+            context,
+            MemoirDatabase::class.java,
+        ).build()
+
+        return try {
+            val albumRepository = RoomAlbumRepository(database)
+            val journalingRepository = RoomJournalingRepository(database)
+            block(albumRepository, journalingRepository)
             DatabaseSelfTestResult(name = name, passed = true, details = "Passed")
         } catch (error: Throwable) {
             DatabaseSelfTestResult(
