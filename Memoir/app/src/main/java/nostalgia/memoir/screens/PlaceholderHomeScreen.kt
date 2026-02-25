@@ -44,7 +44,7 @@ fun PlaceholderHomeScreen(
 ) {
     val context = LocalContext.current
     val photos = remember(photoFiles) {
-        val available = context.assets.list("photos")?.toSet() ?: emptySet()
+        val available = context.assets.list("sample_imgs")?.toSet() ?: emptySet()
         photoFiles.filter { it in available }
     }
 
