@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -155,39 +157,45 @@ private fun AddAlbumDialog(
     var albumName by remember { mutableStateOf("") }
 
     Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .padding(24.dp)
-                .fillMaxWidth(),
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surface,
         ) {
-            Text(
-                text = "New Album",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
-
-            OutlinedTextField(
-                value = albumName,
-                onValueChange = { albumName = it },
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                placeholder = { Text("Album name") },
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                    .padding(24.dp)
+                    .fillMaxWidth(),
             ) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-                TextButton(
-                    onClick = {
-                        val trimmed = albumName.trim()
-                        if (trimmed.isNotBlank()) onConfirm(trimmed)
-                    },
-                    enabled = albumName.trim().isNotBlank(),
+                Text(
+                    text = "New Album",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+
+                OutlinedTextField(
+                    value = albumName,
+                    onValueChange = { albumName = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    placeholder = { Text("Album name") },
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
                 ) {
-                    Text("Create")
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    TextButton(
+                        onClick = {
+                            val trimmed = albumName.trim()
+                            if (trimmed.isNotBlank()) onConfirm(trimmed)
+                        },
+                        enabled = albumName.trim().isNotBlank(),
+                    ) {
+                        Text("Create")
+                    }
                 }
             }
         }
