@@ -1,5 +1,6 @@
 package nostalgia.memoir.screens
 
+import android.content.res.AssetManager
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -34,6 +35,15 @@ import nostalgia.memoir.ui.theme.MemoirTheme
 
 private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "gif")
 
+private fun listImagesFromFolder(assets: AssetManager, folder: String): List<String> =
+    assets.list(folder)
+        ?.filter { name ->
+            val ext = name.substringAfterLast('.', "").lowercase()
+            ext in IMAGE_EXTENSIONS
+        }
+        ?.map { "$folder/$it" }
+        ?: emptyList()
+
 @Composable
 fun PlaceholderHomeScreen(
     modifier: Modifier = Modifier,
@@ -41,13 +51,7 @@ fun PlaceholderHomeScreen(
 ) {
     val context = LocalContext.current
     val photos = remember {
-        context.assets.list("photos")
-            ?.filter { name ->
-                val ext = name.substringAfterLast('.', "").lowercase()
-                ext in IMAGE_EXTENSIONS
-            }
-            ?.sorted()
-            ?: emptyList()
+        listImagesFromFolder(context.assets, "photos").sorted()
     }
 
     if (photos.isEmpty()) {
@@ -56,7 +60,7 @@ fun PlaceholderHomeScreen(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "Add photos to app/src/main/assets/sample_imgs/\n(any names: .jpg, .png, etc.)",
+                text = "Add photos to app/src/main/assets/photos/\n(.jpg, .png, etc.)",
                 modifier = Modifier.padding(24.dp),
             )
         }
@@ -68,13 +72,13 @@ fun PlaceholderHomeScreen(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            items(photos) { filename ->
+            items(photos) { assetPath ->
                 AssetImage(
-                    assetPath = "photos/$filename",
+                    assetPath = assetPath,
                     modifier = Modifier
                         .aspectRatio(1f)
                         .padding(2.dp)
-                        .clickable { onPhotoClick(filename) },
+                        .clickable { onPhotoClick(assetPath) },
                     contentScale = ContentScale.Crop,
                 )
             }
