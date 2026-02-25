@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,16 +58,27 @@ fun PhotoDetailScreen(
     assetPath: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    isNewPhoto: Boolean = false,
+    photoIndex: Int = 1,
+    totalPhotos: Int = 1,
+    onNext: (() -> Unit)? = null,
+    requireJournal: Boolean = false,
 ) {
     val context = LocalContext.current
     var journalText by remember(assetPath) {
-        mutableStateOf(loadJournalEntry(context, assetPath))
+        mutableStateOf(
+            if (isNewPhoto) "" else loadJournalEntry(context, assetPath)
+        )
     }
 
     LaunchedEffect(journalText) {
-        delay(500)
-        saveJournalEntry(context, assetPath, journalText)
+        if (journalText.isNotBlank()) {
+            delay(500)
+            saveJournalEntry(context, assetPath, journalText)
+        }
     }
+
+    val canProceed = !requireJournal || journalText.trim().isNotBlank()
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(
@@ -75,16 +87,25 @@ fun PhotoDetailScreen(
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "← Back",
-                modifier = Modifier
-                    .padding(end = 8.dp)
-                    .clickable {
-                        saveJournalEntry(context, assetPath, journalText)
-                        onBack()
-                    },
-                style = MaterialTheme.typography.bodyLarge,
-            )
+            if (!isNewPhoto) {
+                Text(
+                    text = "← Back",
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .clickable {
+                            saveJournalEntry(context, assetPath, journalText)
+                            onBack()
+                        },
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+            if (isNewPhoto) {
+                Text(
+                    text = "New Photo • $photoIndex of $totalPhotos",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
         AssetImage(
             assetPath = assetPath,
@@ -101,7 +122,7 @@ fun PhotoDetailScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = "Journal Entry",
+                text = "Journal Entry" + if (requireJournal) " (required)" else "",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
@@ -113,8 +134,27 @@ fun PhotoDetailScreen(
                     .weight(1f),
                 minLines = 4,
                 maxLines = 12,
-                placeholder = { Text("Write your thoughts...") },
+                placeholder = {
+                    Text(
+                        if (isNewPhoto) "Write your thoughts about this new photo..."
+                        else "Write your thoughts..."
+                    )
+                },
             )
+            if (onNext != null) {
+                Button(
+                    onClick = {
+                        saveJournalEntry(context, assetPath, journalText)
+                        onNext()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = canProceed,
+                ) {
+                    Text(
+                        text = if (photoIndex < totalPhotos) "Next" else "Done",
+                    )
+                }
+            }
         }
     }
 }

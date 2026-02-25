@@ -14,6 +14,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -29,7 +33,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MemoirTheme {
-                MainNavigation()
+                MemoirApp()
             }
         }
     }
@@ -44,6 +48,23 @@ enum class AppDestinations(
     CAMERA("Camera", R.drawable.ic_launcher_background),
     SHARED_ALBUMS("Shared", R.drawable.ic_launcher_background),
     SEARCH("Search", R.drawable.ic_launcher_background),
+}
+
+@Composable
+fun MemoirApp() {
+    val context = LocalContext.current
+    var showOnboarding by remember {
+        mutableStateOf(!hasCompletedNewPhotosOnboarding(context))
+    }
+
+    if (showOnboarding) {
+        NewPhotosOnboardingScreen(
+            onComplete = { showOnboarding = false },
+            modifier = Modifier.fillMaxSize(),
+        )
+    } else {
+        MainNavigation()
+    }
 }
 
 @OptIn(ExperimentalMaterial3AdaptiveNavigationSuiteApi::class)
