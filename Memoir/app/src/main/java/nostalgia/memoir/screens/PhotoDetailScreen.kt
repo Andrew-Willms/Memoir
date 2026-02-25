@@ -1,0 +1,160 @@
+package nostalgia.memoir.screens
+
+import android.content.Context
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import nostalgia.memoir.screens.common.AssetImage
+
+internal val MOCK_JOURNAL_ENTRIES: Map<String, String> = buildMap {
+    put("photos/1.jpg", "A beautiful day at the beach. The waves were perfect.")
+    put("photos/2.jpg", "Family dinner – everyone together again.")
+    put("photos/3.jpg", "Sunset over the mountains. Worth the hike.")
+    put("photos/4.jpg", "Birthday party memories. Best cake ever!")
+    put("photos/5.jpg", "First day of the trip. So excited!")
+    put("photos/6.jpg", "Found this hidden gem. Need to come back.")
+}
+
+private const val PREFS_NAME = "journal_entries"
+private const val KEY_PREFIX = "journal_"
+
+private fun loadJournalEntry(context: Context, assetPath: String): String {
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    prefs.getString(KEY_PREFIX + assetPath, null)?.let { return it }
+    return MOCK_JOURNAL_ENTRIES[assetPath] ?: "Write your thoughts about this moment..."
+}
+
+private fun saveJournalEntry(context: Context, assetPath: String, text: String) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit()
+        .putString(KEY_PREFIX + assetPath, text)
+        .apply()
+}
+
+@Composable
+fun PhotoDetailScreen(
+    assetPath: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    isNewPhoto: Boolean = false,
+    photoIndex: Int = 1,
+    totalPhotos: Int = 1,
+    onNext: (() -> Unit)? = null,
+    requireJournal: Boolean = false,
+) {
+    val context = LocalContext.current
+    var journalText by remember(assetPath) {
+        mutableStateOf(
+            if (isNewPhoto) "" else loadJournalEntry(context, assetPath)
+        )
+    }
+
+    LaunchedEffect(journalText) {
+        if (journalText.isNotBlank()) {
+            delay(500)
+            saveJournalEntry(context, assetPath, journalText)
+        }
+    }
+
+    val canProceed = !requireJournal || journalText.trim().isNotBlank()
+
+    Column(modifier = modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (!isNewPhoto) {
+                Text(
+                    text = "← Back",
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .clickable {
+                            saveJournalEntry(context, assetPath, journalText)
+                            onBack()
+                        },
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+            if (isNewPhoto) {
+                Text(
+                    text = "New Photo • $photoIndex of $totalPhotos",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+        AssetImage(
+            assetPath = assetPath,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .aspectRatio(1f),
+            contentScale = ContentScale.Crop,
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "Journal Entry" + if (requireJournal) " (required)" else "",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            OutlinedTextField(
+                value = journalText,
+                onValueChange = { journalText = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                minLines = 4,
+                maxLines = 12,
+                placeholder = {
+                    Text(
+                        if (isNewPhoto) "Write your thoughts about this new photo..."
+                        else "Write your thoughts..."
+                    )
+                },
+            )
+            if (onNext != null) {
+                Button(
+                    onClick = {
+                        saveJournalEntry(context, assetPath, journalText)
+                        onNext()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = canProceed,
+                ) {
+                    Text(
+                        text = if (photoIndex < totalPhotos) "Next" else "Done",
+                    )
+                }
+            }
+        }
+    }
+}
