@@ -24,8 +24,8 @@ import coil.request.ImageRequest
 import nostalgia.memoir.ui.theme.MemoirTheme
 
 /**
- * Hardcoded list of photo filenames in assets/photos/.
- * Add your demo images to app/src/main/assets/photos/ and list them here.
+ * Hardcoded list of photo filenames in assets/sample_imgs/.
+ * Add your demo images to app/src/main/assets/sample_imgs/ and list them here.
  */
 private val DEMO_PHOTO_FILES = listOf(
     "1.jpg",
@@ -54,7 +54,7 @@ fun PlaceholderHomeScreen(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "Add photos to app/src/main/assets/photos/\n(1.jpg, 2.jpg, ...)",
+                text = "Add photos to app/src/main/assets/sample_imgs/\n(1.jpg, 2.jpg, ...)",
                 modifier = Modifier.padding(24.dp),
             )
         }
