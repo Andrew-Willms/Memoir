@@ -27,11 +27,13 @@ android {
         debug {
             buildConfigField("boolean", "ENABLE_STARTUP_MOCK_SEED", "true")
             buildConfigField("String", "STARTUP_MOCK_PHOTO_FOLDER", "\"MemoirMock\"")
+            buildConfigField("String", "STARTUP_MOCK_PHOTO_FOLDERS", "\"MemoirMock,sample_imgs\"")
         }
         release {
             isMinifyEnabled = false
             buildConfigField("boolean", "ENABLE_STARTUP_MOCK_SEED", "false")
             buildConfigField("String", "STARTUP_MOCK_PHOTO_FOLDER", "\"MemoirMock\"")
+            buildConfigField("String", "STARTUP_MOCK_PHOTO_FOLDERS", "\"MemoirMock,sample_imgs\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -69,6 +71,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
+    implementation(libs.coil.compose)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     kapt(libs.androidx.room.compiler)
