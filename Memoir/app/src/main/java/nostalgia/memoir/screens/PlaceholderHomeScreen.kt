@@ -32,29 +32,22 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import nostalgia.memoir.ui.theme.MemoirTheme
 
-/**
- * Hardcoded list of photo filenames in assets/sample_imgs/.
- * Add your demo images to app/src/main/assets/sample_imgs/ and list them here.
- */
-private val DEMO_PHOTO_FILES = listOf(
-    "1.jpg",
-    "2.jpg",
-    "3.jpg",
-    "4.jpg",
-    "5.jpg",
-    "6.jpg",
-)
+private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "gif")
 
 @Composable
 fun PlaceholderHomeScreen(
-    photoFiles: List<String> = DEMO_PHOTO_FILES,
     modifier: Modifier = Modifier,
     onPhotoClick: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
-    val photos = remember(photoFiles) {
-        val available = context.assets.list("sample_imgs")?.toSet() ?: emptySet()
-        photoFiles.filter { it in available }
+    val photos = remember {
+        context.assets.list("photos")
+            ?.filter { name ->
+                val ext = name.substringAfterLast('.', "").lowercase()
+                ext in IMAGE_EXTENSIONS
+            }
+            ?.sorted()
+            ?: emptyList()
     }
 
     if (photos.isEmpty()) {
@@ -63,7 +56,7 @@ fun PlaceholderHomeScreen(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "Add photos to app/src/main/assets/sample_imgs/\n(1.jpg, 2.jpg, ...)",
+                text = "Add photos to app/src/main/assets/photos/\n(any names: .jpg, .png, etc.)",
                 modifier = Modifier.padding(24.dp),
             )
         }
@@ -77,7 +70,7 @@ fun PlaceholderHomeScreen(
         ) {
             items(photos) { filename ->
                 AssetImage(
-                    assetPath = "sample_imgs/$filename",
+                    assetPath = "photos/$filename",
                     modifier = Modifier
                         .aspectRatio(1f)
                         .padding(2.dp)
@@ -127,9 +120,6 @@ private fun AssetImage(
 @Composable
 private fun PlaceholderHomeScreenPreview() {
     MemoirTheme {
-        PlaceholderHomeScreen(
-            photoFiles = emptyList(),
-            modifier = Modifier.fillMaxSize(),
-        )
+        PlaceholderHomeScreen(modifier = Modifier.fillMaxSize())
     }
 }
