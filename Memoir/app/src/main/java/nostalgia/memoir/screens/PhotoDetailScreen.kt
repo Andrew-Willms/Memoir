@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -66,6 +67,11 @@ fun PhotoDetailScreen(
     assetPath: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    isNewPhoto: Boolean = false,
+    photoIndex: Int = 0,
+    totalPhotos: Int = 0,
+    onNext: (() -> Unit)? = null,
+    requireJournal: Boolean = false,
 ) {
     val context = LocalContext.current
     var journalText by remember(assetPath) {
@@ -96,22 +102,38 @@ fun PhotoDetailScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "← Back",
+        if (!isNewPhoto) {
+            Row(
                 modifier = Modifier
-                    .padding(end = 8.dp)
-                    .clickable {
-                        saveJournalEntry(context, assetPath, journalText)
-                        onBack()
-                    },
-                style = MaterialTheme.typography.bodyLarge,
-            )
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "← Back",
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .clickable {
+                            saveJournalEntry(context, assetPath, journalText)
+                            onBack()
+                        },
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+        }
+        if (isNewPhoto) {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = "New Photo ($photoIndex of $totalPhotos)",
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
         }
         AssetImage(
             assetPath = assetPath,
@@ -194,6 +216,27 @@ fun PhotoDetailScreen(
                 maxLines = 12,
                 placeholder = { Text("Write your thoughts...") },
             )
+            if (requireJournal) {
+                Text(
+                    text = "A journal entry is required before continuing.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            if (onNext != null) {
+                val defaultText = MOCK_JOURNAL_ENTRIES[assetPath] ?: "Write your thoughts..."
+                val hasJournal = journalText.isNotBlank() && journalText != defaultText
+                Button(
+                    onClick = {
+                        saveJournalEntry(context, assetPath, journalText)
+                        onNext()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !requireJournal || hasJournal,
+                ) {
+                    Text(if (photoIndex < totalPhotos) "Next" else "Done")
+                }
+            }
         }
     }
 
