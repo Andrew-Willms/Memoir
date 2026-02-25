@@ -70,7 +70,7 @@ fun PlaceholderHomeScreen(
 ) {
     val context = LocalContext.current
     val photos = remember {
-        listImagesFromFolder(context.assets, "photos").sorted().take(6)
+        listImagesFromFolder(context.assets, "photos").sorted()
     }
 
     if (photos.isEmpty()) {
