@@ -33,7 +33,26 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import nostalgia.memoir.ui.theme.MemoirTheme
 
+private const val MAX_THUMBNAIL_SIZE = 512
+
 private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "gif")
+
+private fun AssetManager.decodeScaledBitmap(assetPath: String): android.graphics.Bitmap? {
+    open(assetPath).use { stream ->
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeStream(stream, null, bounds)
+        val (w, h) = bounds.outWidth to bounds.outHeight
+        if (w <= 0 || h <= 0) return null
+        val sampleSize = maxOf(1, maxOf(w, h) / MAX_THUMBNAIL_SIZE)
+        open(assetPath).use { decodeStream ->
+            val opts = BitmapFactory.Options().apply {
+                inSampleSize = sampleSize
+                inJustDecodeBounds = false
+            }
+            return BitmapFactory.decodeStream(decodeStream, null, opts)
+        }
+    }
+}
 
 private fun listImagesFromFolder(assets: AssetManager, folder: String): List<String> =
     assets.list(folder)
@@ -98,9 +117,7 @@ private fun AssetImage(
     LaunchedEffect(assetPath) {
         bitmap = withContext(Dispatchers.IO) {
             runCatching {
-                context.assets.open(assetPath).use { stream ->
-                    BitmapFactory.decodeStream(stream)?.asImageBitmap()
-                }
+                context.assets.decodeScaledBitmap(assetPath)?.asImageBitmap()
             }.getOrNull()
         }
     }
