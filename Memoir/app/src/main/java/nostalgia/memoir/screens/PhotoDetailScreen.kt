@@ -216,16 +216,16 @@ fun PhotoDetailScreen(
                 maxLines = 12,
                 placeholder = { Text("Write your thoughts...") },
             )
-            if (requireJournal) {
-                Text(
-                    text = "A journal entry is required before continuing.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
             if (onNext != null) {
                 val defaultText = MOCK_JOURNAL_ENTRIES[assetPath] ?: "Write your thoughts..."
                 val hasJournal = journalText.isNotBlank() && journalText != defaultText
+                if (requireJournal && !hasJournal) {
+                    Text(
+                        text = "A journal entry is required before continuing.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
                 Button(
                     onClick = {
                         saveJournalEntry(context, assetPath, journalText)

@@ -78,6 +78,22 @@ fun removePhotoFromAlbum(context: Context, albumId: String, assetPath: String) {
     savePhotosInAlbum(context, albumId, current)
 }
 
+fun deleteAlbum(context: Context, albumId: String) {
+    val myAlbums = loadMyAlbums(context)
+    val sharedAlbums = loadSharedAlbums(context)
+
+    if (myAlbums.any { it.id == albumId }) {
+        saveMyAlbums(context, myAlbums.filter { it.id != albumId })
+    } else {
+        saveSharedAlbums(context, sharedAlbums.filter { it.id != albumId })
+    }
+
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit()
+        .remove(KEY_ALBUM_PHOTOS + albumId)
+        .apply()
+}
+
 fun createAlbum(context: Context, name: String, isShared: Boolean): StoredAlbum {
     val albums = if (isShared) loadSharedAlbums(context) else loadMyAlbums(context)
     val newAlbum = StoredAlbum(id = UUID.randomUUID().toString(), name = name, isShared = isShared)

@@ -29,6 +29,7 @@ import androidx.compose.ui.window.Dialog
 import nostalgia.memoir.screens.common.PhotoGridContent
 import nostalgia.memoir.screens.data.StoredAlbum
 import nostalgia.memoir.screens.data.createAlbum
+import nostalgia.memoir.screens.data.deleteAlbum
 import nostalgia.memoir.screens.data.loadMyAlbums
 import nostalgia.memoir.screens.data.loadPhotosInAlbum
 import nostalgia.memoir.screens.data.loadSharedAlbums
@@ -48,6 +49,7 @@ fun AlbumsScreen(
     var selectedAlbum by remember { mutableStateOf<StoredAlbum?>(null) }
     var selectedPhotoPath by remember { mutableStateOf<String?>(null) }
     var showAddAlbum by remember { mutableStateOf(false) }
+    var albumToDelete by remember { mutableStateOf<StoredAlbum?>(null) }
 
     when {
         selectedPhotoPath != null -> {
@@ -123,13 +125,20 @@ fun AlbumsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { selectedAlbum = album }
-                                .padding(16.dp),
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
                                 text = album.name,
                                 style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f),
                             )
+                            TextButton(
+                                onClick = { albumToDelete = album },
+                            ) {
+                                Text("Delete", color = MaterialTheme.colorScheme.error)
+                            }
                         }
                     }
                 }
@@ -144,6 +153,18 @@ fun AlbumsScreen(
                 createAlbum(context, name, isShared)
                 refreshTrigger += 1
                 showAddAlbum = false
+            },
+        )
+    }
+
+    albumToDelete?.let { album ->
+        ConfirmDeleteDialog(
+            albumName = album.name,
+            onDismiss = { albumToDelete = null },
+            onConfirm = {
+                deleteAlbum(context, album.id)
+                refreshTrigger++
+                albumToDelete = null
             },
         )
     }
@@ -195,6 +216,47 @@ private fun AddAlbumDialog(
                         enabled = albumName.trim().isNotBlank(),
                     ) {
                         Text("Create")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConfirmDeleteDialog(
+    albumName: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth(),
+            ) {
+                Text(
+                    text = "Delete Album",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Are you sure you want to delete \"$albumName\"? This cannot be undone.",
+                    modifier = Modifier.padding(vertical = 16.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    TextButton(onClick = onConfirm) {
+                        Text("Delete", color = MaterialTheme.colorScheme.error)
                     }
                 }
             }
