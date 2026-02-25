@@ -1,5 +1,6 @@
 package nostalgia.memoir.screens
 
+import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,11 +13,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -32,8 +36,21 @@ internal val MOCK_JOURNAL_ENTRIES: Map<String, String> = buildMap {
     put("photos/6.jpg", "Found this hidden gem. Need to come back.")
 }
 
-private fun getJournalEntryForPhoto(assetPath: String): String =
-    MOCK_JOURNAL_ENTRIES[assetPath] ?: "Write your thoughts about this moment..."
+private const val PREFS_NAME = "journal_entries"
+private const val KEY_PREFIX = "journal_"
+
+private fun loadJournalEntry(context: Context, assetPath: String): String {
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    prefs.getString(KEY_PREFIX + assetPath, null)?.let { return it }
+    return MOCK_JOURNAL_ENTRIES[assetPath] ?: "Write your thoughts about this moment..."
+}
+
+private fun saveJournalEntry(context: Context, assetPath: String, text: String) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit()
+        .putString(KEY_PREFIX + assetPath, text)
+        .apply()
+}
 
 @Composable
 fun PhotoDetailScreen(
@@ -41,8 +58,14 @@ fun PhotoDetailScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     var journalText by remember(assetPath) {
-        mutableStateOf(getJournalEntryForPhoto(assetPath))
+        mutableStateOf(loadJournalEntry(context, assetPath))
+    }
+
+    LaunchedEffect(journalText) {
+        delay(500)
+        saveJournalEntry(context, assetPath, journalText)
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -56,7 +79,10 @@ fun PhotoDetailScreen(
                 text = "← Back",
                 modifier = Modifier
                     .padding(end = 8.dp)
-                    .clickable { onBack() },
+                    .clickable {
+                        saveJournalEntry(context, assetPath, journalText)
+                        onBack()
+                    },
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
