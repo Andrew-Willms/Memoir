@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -73,33 +74,41 @@ fun PlaceholderHomeScreen(
         listImagesFromFolder(context.assets, "photos").sorted()
     }
 
-    if (photos.isEmpty()) {
-        Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "Add photos to app/src/main/assets/photos/\n(.jpg, .png, etc.)",
-                modifier = Modifier.padding(24.dp),
-            )
-        }
-    } else {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            items(photos) { assetPath ->
-                AssetImage(
-                    assetPath = assetPath,
-                    modifier = Modifier
-                        .aspectRatio(1f)
-                        .padding(2.dp)
-                        .clickable { onPhotoClick(assetPath) },
-                    contentScale = ContentScale.Crop,
+    Column(modifier = modifier.fillMaxSize()) {
+        Text(
+            text = "My Gallery",
+            modifier = Modifier.padding(16.dp),
+            style = androidx.compose.material3.MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        if (photos.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "Add photos to app/src/main/assets/photos/\n(.jpg, .png, etc.)",
+                    modifier = Modifier.padding(24.dp),
                 )
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                items(photos) { assetPath ->
+                    AssetImage(
+                        assetPath = assetPath,
+                        modifier = Modifier
+                            .aspectRatio(1f)
+                            .padding(2.dp)
+                            .clickable { onPhotoClick(assetPath) },
+                        contentScale = ContentScale.Crop,
+                    )
+                }
             }
         }
     }
