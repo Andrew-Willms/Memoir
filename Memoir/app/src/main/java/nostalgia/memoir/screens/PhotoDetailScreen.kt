@@ -4,41 +4,28 @@ import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-<<<<<<< HEAD
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-=======
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import kotlinx.coroutines.delay
->>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-<<<<<<< HEAD
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -60,35 +47,11 @@ private val MOCK_JOURNAL_ENTRIES = mapOf(
     "photos/2.jpg" to "Family dinner – everyone together.",
     "photos/3.jpg" to "Sunset over the mountains.",
 )
-=======
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import nostalgia.memoir.screens.common.AssetImage
-
-internal val MOCK_JOURNAL_ENTRIES: Map<String, String> = buildMap {
-    put("photos/1.jpg", "A beautiful day at the beach. The waves were perfect.")
-    put("photos/2.jpg", "Family dinner – everyone together again.")
-    put("photos/3.jpg", "Sunset over the mountains. Worth the hike.")
-    put("photos/4.jpg", "Birthday party memories. Best cake ever!")
-    put("photos/5.jpg", "First day of the trip. So excited!")
-    put("photos/6.jpg", "Found this hidden gem. Need to come back.")
-}
-
-private const val PREFS_NAME = "journal_entries"
-private const val KEY_PREFIX = "journal_"
->>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
 
 private fun loadJournalEntry(context: Context, assetPath: String): String {
     val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     prefs.getString(KEY_PREFIX + assetPath, null)?.let { return it }
-<<<<<<< HEAD
     return MOCK_JOURNAL_ENTRIES[assetPath] ?: "Write your thoughts..."
-=======
-    return MOCK_JOURNAL_ENTRIES[assetPath] ?: "Write your thoughts about this moment..."
->>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
 }
 
 private fun saveJournalEntry(context: Context, assetPath: String, text: String) {
@@ -103,20 +66,6 @@ fun PhotoDetailScreen(
     assetPath: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-<<<<<<< HEAD
-) {
-    val context = LocalContext.current
-    var journalText by remember(assetPath) {
-        mutableStateOf(loadJournalEntry(context, assetPath))
-    }
-
-    var refreshTrigger by remember { mutableStateOf(0) }
-    var showAddMyAlbum by remember { mutableStateOf(false) }
-    var showAddSharedAlbum by remember { mutableStateOf(false) }
-    val myAlbums = remember(refreshTrigger) { loadMyAlbums(context) }
-    val sharedAlbums = remember(refreshTrigger) { loadSharedAlbums(context) }
-
-=======
     isNewPhoto: Boolean = false,
     photoIndex: Int = 1,
     totalPhotos: Int = 1,
@@ -125,12 +74,17 @@ fun PhotoDetailScreen(
 ) {
     val context = LocalContext.current
     var journalText by remember(assetPath) {
-        mutableStateOf(
-            if (isNewPhoto) "" else loadJournalEntry(context, assetPath)
-        )
+        mutableStateOf(if (isNewPhoto) "" else loadJournalEntry(context, assetPath))
     }
 
->>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
+    var refreshTrigger by remember { mutableStateOf(0) }
+    var showAddMyAlbum by remember { mutableStateOf(false) }
+    var showAddSharedAlbum by remember { mutableStateOf(false) }
+    val myAlbums = remember(refreshTrigger) { loadMyAlbums(context) }
+    val sharedAlbums = remember(refreshTrigger) { loadSharedAlbums(context) }
+
+    val canProceed = !requireJournal || journalText.trim().isNotBlank()
+
     LaunchedEffect(journalText) {
         if (journalText.isNotBlank()) {
             delay(500)
@@ -138,11 +92,13 @@ fun PhotoDetailScreen(
         }
     }
 
-<<<<<<< HEAD
     fun onAlbumToggle(album: StoredAlbum, checked: Boolean) {
-        if (checked) addPhotoToAlbum(context, album.id, assetPath)
-        else removePhotoFromAlbum(context, album.id, assetPath)
-        refreshTrigger++
+        if (checked) {
+            addPhotoToAlbum(context, album.id, assetPath)
+        } else {
+            removePhotoFromAlbum(context, album.id, assetPath)
+        }
+        refreshTrigger += 1
     }
 
     Column(
@@ -150,29 +106,12 @@ fun PhotoDetailScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-=======
-    val canProceed = !requireJournal || journalText.trim().isNotBlank()
-
-    Column(modifier = modifier.fillMaxSize()) {
->>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-<<<<<<< HEAD
-            Text(
-                text = "← Back",
-                modifier = Modifier
-                    .padding(end = 8.dp)
-                    .clickable {
-                        saveJournalEntry(context, assetPath, journalText)
-                        onBack()
-                    },
-                style = MaterialTheme.typography.bodyLarge,
-            )
-=======
             if (!isNewPhoto) {
                 Text(
                     text = "← Back",
@@ -185,6 +124,7 @@ fun PhotoDetailScreen(
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }
+
             if (isNewPhoto) {
                 Text(
                     text = "New Photo • $photoIndex of $totalPhotos",
@@ -192,103 +132,115 @@ fun PhotoDetailScreen(
                     fontWeight = FontWeight.Bold,
                 )
             }
->>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
         }
+
         AssetImage(
             assetPath = assetPath,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
                 .aspectRatio(1f),
-<<<<<<< HEAD
-            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-        )
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = "Add to albums",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = "Your Albums",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            myAlbums.forEach { album ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            val current = isPhotoInAlbum(context, album.id, assetPath)
-                            onAlbumToggle(album, !current)
-                        },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Checkbox(
-                        checked = isPhotoInAlbum(context, album.id, assetPath),
-                        onCheckedChange = { onAlbumToggle(album, it) },
-                    )
-                    Text(text = album.name, modifier = Modifier.padding(start = 8.dp))
-                }
-            }
-            TextButton(onClick = { showAddMyAlbum = true }) {
-                Text("+ Add album")
-            }
-
-            Text(
-                text = "Shared Albums",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            sharedAlbums.forEach { album ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            val current = isPhotoInAlbum(context, album.id, assetPath)
-                            onAlbumToggle(album, !current)
-                        },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Checkbox(
-                        checked = isPhotoInAlbum(context, album.id, assetPath),
-                        onCheckedChange = { onAlbumToggle(album, it) },
-                    )
-                    Text(text = album.name, modifier = Modifier.padding(start = 8.dp))
-                }
-            }
-            TextButton(onClick = { showAddSharedAlbum = true }) {
-                Text("+ Add album")
-            }
-            Text(
-                text = "Journal Entry",
-=======
             contentScale = ContentScale.Crop,
         )
+
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            if (!isNewPhoto) {
+                Text(
+                    text = "Add to albums",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+
+                Text(
+                    text = "Your Albums",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                myAlbums.forEach { album ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val current = isPhotoInAlbum(context, album.id, assetPath)
+                                onAlbumToggle(album, !current)
+                            },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = isPhotoInAlbum(context, album.id, assetPath),
+                            onCheckedChange = { onAlbumToggle(album, it) },
+                        )
+                        Text(text = album.name, modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+                TextButton(onClick = { showAddMyAlbum = true }) {
+                    Text("+ Add album")
+                }
+
+                Text(
+                    text = "Shared Albums",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                sharedAlbums.forEach { album ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val current = isPhotoInAlbum(context, album.id, assetPath)
+                                onAlbumToggle(album, !current)
+                            },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = isPhotoInAlbum(context, album.id, assetPath),
+                            onCheckedChange = { onAlbumToggle(album, it) },
+                        )
+                        Text(text = album.name, modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+                TextButton(onClick = { showAddSharedAlbum = true }) {
+                    Text("+ Add album")
+                }
+            }
+
             Text(
                 text = "Journal Entry" + if (requireJournal) " (required)" else "",
->>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
+
             OutlinedTextField(
                 value = journalText,
                 onValueChange = { journalText = it },
-<<<<<<< HEAD
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 4,
                 maxLines = 12,
-                placeholder = { Text("Write your thoughts...") },
+                placeholder = {
+                    Text(
+                        if (isNewPhoto) "Write your thoughts about this new photo..."
+                        else "Write your thoughts...",
+                    )
+                },
             )
+
+            if (onNext != null) {
+                Button(
+                    onClick = {
+                        saveJournalEntry(context, assetPath, journalText)
+                        onNext()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = canProceed,
+                ) {
+                    Text(text = if (photoIndex < totalPhotos) "Next" else "Done")
+                }
+            }
         }
     }
 
@@ -297,17 +249,18 @@ fun PhotoDetailScreen(
             onDismiss = { showAddMyAlbum = false },
             onConfirm = { name ->
                 createAlbum(context, name, isShared = false)
-                refreshTrigger++
+                refreshTrigger += 1
                 showAddMyAlbum = false
             },
         )
     }
+
     if (showAddSharedAlbum) {
         AddAlbumDialog(
             onDismiss = { showAddSharedAlbum = false },
             onConfirm = { name ->
                 createAlbum(context, name, isShared = true)
-                refreshTrigger++
+                refreshTrigger += 1
                 showAddSharedAlbum = false
             },
         )
@@ -320,6 +273,7 @@ private fun AddAlbumDialog(
     onConfirm: (String) -> Unit,
 ) {
     var albumName by remember { mutableStateOf("") }
+
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
@@ -334,7 +288,9 @@ private fun AddAlbumDialog(
             OutlinedTextField(
                 value = albumName,
                 onValueChange = { albumName = it },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
                 placeholder = { Text("Album name") },
             )
             Row(
@@ -343,36 +299,14 @@ private fun AddAlbumDialog(
             ) {
                 TextButton(onClick = onDismiss) { Text("Cancel") }
                 TextButton(
-                    onClick = { if (albumName.trim().isNotBlank()) onConfirm(albumName.trim()) },
-                    enabled = albumName.trim().isNotBlank(),
-                ) { Text("Create") }
-=======
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                minLines = 4,
-                maxLines = 12,
-                placeholder = {
-                    Text(
-                        if (isNewPhoto) "Write your thoughts about this new photo..."
-                        else "Write your thoughts..."
-                    )
-                },
-            )
-            if (onNext != null) {
-                Button(
                     onClick = {
-                        saveJournalEntry(context, assetPath, journalText)
-                        onNext()
+                        val trimmed = albumName.trim()
+                        if (trimmed.isNotBlank()) onConfirm(trimmed)
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = canProceed,
+                    enabled = albumName.trim().isNotBlank(),
                 ) {
-                    Text(
-                        text = if (photoIndex < totalPhotos) "Next" else "Done",
-                    )
+                    Text("Create")
                 }
->>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
             }
         }
     }
