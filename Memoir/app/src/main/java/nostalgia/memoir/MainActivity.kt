@@ -21,8 +21,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import nostalgia.memoir.screens.*
 import nostalgia.memoir.ui.theme.MemoirTheme
@@ -43,11 +44,11 @@ enum class AppDestinations(
     val label: String,
     val drawableId: Int,
 ) {
-    HOME("Home", R.drawable.ic_launcher_background),
-    YOUR_ALBUMS("Your Albums", R.drawable.ic_launcher_background),
-    CAMERA("Camera", R.drawable.ic_launcher_background),
-    SHARED_ALBUMS("Shared", R.drawable.ic_launcher_background),
-    SEARCH("Search", R.drawable.ic_launcher_background),
+    HOME("Home", R.drawable.home_tab_icon),
+    YOUR_ALBUMS("Your Albums", R.drawable.your_albums_tab_icon),
+    CAMERA("Camera", R.drawable.camera_tab_icon),
+    SHARED_ALBUMS("Shared", R.drawable.shared_albums_tab_icon),
+    SEARCH("Search", R.drawable.search_tab_icon),
 }
 
 @Composable
@@ -79,8 +80,9 @@ fun MainNavigation() {
                 item(
                     icon = {
                         Icon(
-                            ImageVector.vectorResource(it.drawableId),
-                            contentDescription = it.label
+                            ImageBitmap.imageResource(it.drawableId),
+                            contentDescription = it.label,
+                            tint = Color.Unspecified
                         )
                     },
                     label = { Text(it.label) },
