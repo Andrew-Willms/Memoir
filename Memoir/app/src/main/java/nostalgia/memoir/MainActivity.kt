@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.adaptive.navigationsuite.ExperimentalMaterial3AdaptiveNavigationSuiteApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
@@ -45,6 +46,7 @@ enum class AppDestinations(
     SEARCH("Search", R.drawable.ic_launcher_background),
 }
 
+@OptIn(ExperimentalMaterial3AdaptiveNavigationSuiteApi::class)
 @PreviewScreenSizes
 @Composable
 fun MainNavigation() {
@@ -69,7 +71,7 @@ fun MainNavigation() {
     ) {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
             when (currentDestination) {
-                AppDestinations.HOME -> PlaceholderHomeScreen(Modifier.fillMaxSize().padding(innerPadding))
+                AppDestinations.HOME -> PlaceholderHomeScreen(modifier = Modifier.fillMaxSize().padding(innerPadding))
                 AppDestinations.YOUR_ALBUMS -> PlaceholderYourAlbumsScreen(Modifier.fillMaxSize().padding(innerPadding))
                 AppDestinations.CAMERA -> PlaceholderCameraScreen(Modifier.fillMaxSize().padding(innerPadding))
                 AppDestinations.SHARED_ALBUMS -> PlaceholderSharedAlbumsScreen(Modifier.fillMaxSize().padding(innerPadding))
