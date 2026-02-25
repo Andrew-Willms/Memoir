@@ -56,3 +56,9 @@ google-services.json
 .externalNativeBuild
 .cxx
 # local.properties # appears above
+
+# macOS
+.DS_Store
+
+# IntelliJ / Android Stuidio
+.idea/

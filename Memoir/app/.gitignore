@@ -1,1 +1,7 @@
 /build
+
+# macOS
+.DS_Store
+
+# IntelliJ / Android Stuidio
+.idea/
