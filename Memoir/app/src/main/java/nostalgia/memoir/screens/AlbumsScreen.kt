@@ -64,36 +64,48 @@ fun AlbumsScreen(
         }
     }
 
-    if (selectedAlbum != null) {
-        val album = selectedAlbum!!
-        Column(modifier = modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "← Back",
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .clickable { selectedAlbum = null },
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    text = album.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-            PhotoGridContent(
-                title = "",
-                photoPaths = album.photoPaths,
-                modifier = Modifier.fillMaxSize(),
-                emptyMessage = "No photos in this album",
+    var selectedPhotoPath by remember { mutableStateOf<String?>(null) }
+
+    when {
+        selectedPhotoPath != null -> {
+            PhotoDetailScreen(
+                assetPath = selectedPhotoPath!!,
+                onBack = { selectedPhotoPath = null },
+                modifier = modifier.fillMaxSize(),
             )
         }
-    } else {
+        selectedAlbum != null -> {
+            val album = selectedAlbum!!
+            Column(modifier = modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "← Back",
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .clickable { selectedAlbum = null },
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = album.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                PhotoGridContent(
+                    title = "",
+                    photoPaths = album.photoPaths,
+                    modifier = Modifier.fillMaxSize(),
+                    emptyMessage = "No photos in this album",
+                    onPhotoClick = { selectedPhotoPath = it },
+                )
+            }
+        }
+        else -> {
         Column(modifier = modifier.fillMaxSize()) {
             Text(
                 text = title,
@@ -121,6 +133,7 @@ fun AlbumsScreen(
                     }
                 },
             )
+        }
         }
     }
 }
