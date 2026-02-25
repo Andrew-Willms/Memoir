@@ -27,11 +27,13 @@ android {
         debug {
             buildConfigField("boolean", "ENABLE_STARTUP_MOCK_SEED", "true")
             buildConfigField("String", "STARTUP_MOCK_PHOTO_FOLDER", "\"MemoirMock\"")
+            buildConfigField("String", "STARTUP_MOCK_PHOTO_FOLDERS", "\"MemoirMock,sample_imgs\"")
         }
         release {
             isMinifyEnabled = false
             buildConfigField("boolean", "ENABLE_STARTUP_MOCK_SEED", "false")
             buildConfigField("String", "STARTUP_MOCK_PHOTO_FOLDER", "\"MemoirMock\"")
+            buildConfigField("String", "STARTUP_MOCK_PHOTO_FOLDERS", "\"MemoirMock,sample_imgs\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
