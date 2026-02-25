@@ -51,7 +51,7 @@ fun PlaceholderHomeScreen(
 ) {
     val context = LocalContext.current
     val photos = remember {
-        listImagesFromFolder(context.assets, "photos").sorted()
+        listImagesFromFolder(context.assets, "photos").sorted().take(6)
     }
 
     if (photos.isEmpty()) {
@@ -66,7 +66,7 @@ fun PlaceholderHomeScreen(
         }
     } else {
         LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
+            columns = GridCells.Fixed(2),
             modifier = modifier.fillMaxSize(),
             contentPadding = PaddingValues(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
