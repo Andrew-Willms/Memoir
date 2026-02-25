@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import nostalgia.memoir.diagnostics.DatabaseSelfTestResult
 import nostalgia.memoir.diagnostics.DatabaseSelfTestRunner
 import nostalgia.memoir.diagnostics.DatabaseSelfTestSuite
+import nostalgia.memoir.screens.HomeScreen
 import nostalgia.memoir.ui.theme.MemoirTheme
 
 class MainActivity : ComponentActivity() {
@@ -40,20 +41,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             MemoirTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    if (BuildConfig.DEBUG) {
-                        DatabaseSelfTestScreen(
-                            runner = DatabaseSelfTestRunner(applicationContext),
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(innerPadding),
-                        )
-                    } else {
-                        ReleaseHomePlaceholder(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(innerPadding),
-                        )
-                    }
+                    HomeScreen(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                    )
                 }
             }
         }
