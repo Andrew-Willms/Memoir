@@ -14,6 +14,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class AppStartupInitializerTest {
@@ -245,5 +246,60 @@ class AppStartupInitializerTest {
         println("=== END STARTUP IMPORT DATABASE DUMP ===")
 
         assertTrue(photos.isNotEmpty())
+    }
+
+    @Test
+    fun startupImport_importsAllPhotosFromSampleImgsFolder() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val samplePhotoFiles = resolveSampleImgsFiles()
+        assertTrue("Expected sample_imgs to contain at least one photo", samplePhotoFiles.isNotEmpty())
+
+        val metadataRows = samplePhotoFiles.mapIndexed { index, file ->
+            AppStartupInitializer.ImportedPhotoMetadata(
+                contentUri = "content://sample_imgs/${file.name}",
+                takenAt = 1_700_400_000_000 + index * 1_000L,
+                width = null,
+                height = null,
+                bucketName = "sample_imgs",
+            )
+        }
+
+        val importer = AppStartupInitializer(
+            context = context,
+            databaseProvider = { database },
+            mediaRowsProvider = { metadataRows },
+        )
+
+        importer.run(forceEnabled = true)
+
+        val photoAssetDao = database.photoAssetDao()
+        val importedRows = metadataRows.mapNotNull { row -> photoAssetDao.getByContentUri(row.contentUri) }
+
+        println("sample_imgs file count=${samplePhotoFiles.size}")
+        println("photo_asset imported count=${importedRows.size}")
+
+        assertEquals(samplePhotoFiles.size, importedRows.size)
+        assertTrue(
+            importedRows.map { it.contentUri }.containsAll(metadataRows.map { it.contentUri }),
+        )
+    }
+
+    private fun resolveSampleImgsFiles(): List<File> {
+        val candidates = listOf(
+            File("sample_imgs"),
+            File("../sample_imgs"),
+            File("../../sample_imgs"),
+        )
+
+        val folder = candidates.firstOrNull { it.exists() && it.isDirectory }
+            ?: throw IllegalStateException("Could not locate sample_imgs folder from test working directory")
+
+        return folder
+            .listFiles()
+            .orEmpty()
+            .filter { file ->
+                file.isFile && file.extension.lowercase() in setOf("jpg", "jpeg", "png", "webp")
+            }
+            .sortedBy { it.name.lowercase() }
     }
 }
