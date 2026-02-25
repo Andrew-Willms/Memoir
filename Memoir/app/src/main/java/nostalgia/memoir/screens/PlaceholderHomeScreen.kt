@@ -56,7 +56,7 @@ fun PlaceholderHomeScreen(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "Add photos to app/src/main/assets/photos/\n(any names: .jpg, .png, etc.)",
+                text = "Add photos to app/src/main/assets/sample_imgs/\n(any names: .jpg, .png, etc.)",
                 modifier = Modifier.padding(24.dp),
             )
         }
