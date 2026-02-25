@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
 fun PlaceholderYourAlbumsScreen(modifier: Modifier = Modifier) {
     AlbumsScreen(
         title = "Your Albums",
-        albums = MOCK_MY_ALBUMS,
+        isShared = false,
         modifier = modifier,
     )
 }
