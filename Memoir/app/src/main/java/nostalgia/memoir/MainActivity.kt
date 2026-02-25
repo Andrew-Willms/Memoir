@@ -69,7 +69,7 @@ fun MainNavigation() {
     ) {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
             when (currentDestination) {
-                AppDestinations.HOME -> PlaceholderHomeScreen(Modifier.fillMaxSize().padding(innerPadding))
+                AppDestinations.HOME -> PlaceholderHomeScreen(modifier = Modifier.fillMaxSize().padding(innerPadding))
                 AppDestinations.YOUR_ALBUMS -> PlaceholderYourAlbumsScreen(Modifier.fillMaxSize().padding(innerPadding))
                 AppDestinations.CAMERA -> PlaceholderCameraScreen(Modifier.fillMaxSize().padding(innerPadding))
                 AppDestinations.SHARED_ALBUMS -> PlaceholderSharedAlbumsScreen(Modifier.fillMaxSize().padding(innerPadding))
