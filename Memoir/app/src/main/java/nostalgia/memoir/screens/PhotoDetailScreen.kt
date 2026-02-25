@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+<<<<<<< HEAD
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,12 +18,26 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+=======
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import kotlinx.coroutines.delay
+>>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+<<<<<<< HEAD
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -45,11 +60,35 @@ private val MOCK_JOURNAL_ENTRIES = mapOf(
     "photos/2.jpg" to "Family dinner – everyone together.",
     "photos/3.jpg" to "Sunset over the mountains.",
 )
+=======
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import nostalgia.memoir.screens.common.AssetImage
+
+internal val MOCK_JOURNAL_ENTRIES: Map<String, String> = buildMap {
+    put("photos/1.jpg", "A beautiful day at the beach. The waves were perfect.")
+    put("photos/2.jpg", "Family dinner – everyone together again.")
+    put("photos/3.jpg", "Sunset over the mountains. Worth the hike.")
+    put("photos/4.jpg", "Birthday party memories. Best cake ever!")
+    put("photos/5.jpg", "First day of the trip. So excited!")
+    put("photos/6.jpg", "Found this hidden gem. Need to come back.")
+}
+
+private const val PREFS_NAME = "journal_entries"
+private const val KEY_PREFIX = "journal_"
+>>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
 
 private fun loadJournalEntry(context: Context, assetPath: String): String {
     val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     prefs.getString(KEY_PREFIX + assetPath, null)?.let { return it }
+<<<<<<< HEAD
     return MOCK_JOURNAL_ENTRIES[assetPath] ?: "Write your thoughts..."
+=======
+    return MOCK_JOURNAL_ENTRIES[assetPath] ?: "Write your thoughts about this moment..."
+>>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
 }
 
 private fun saveJournalEntry(context: Context, assetPath: String, text: String) {
@@ -64,6 +103,7 @@ fun PhotoDetailScreen(
     assetPath: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+<<<<<<< HEAD
 ) {
     val context = LocalContext.current
     var journalText by remember(assetPath) {
@@ -76,6 +116,21 @@ fun PhotoDetailScreen(
     val myAlbums = remember(refreshTrigger) { loadMyAlbums(context) }
     val sharedAlbums = remember(refreshTrigger) { loadSharedAlbums(context) }
 
+=======
+    isNewPhoto: Boolean = false,
+    photoIndex: Int = 1,
+    totalPhotos: Int = 1,
+    onNext: (() -> Unit)? = null,
+    requireJournal: Boolean = false,
+) {
+    val context = LocalContext.current
+    var journalText by remember(assetPath) {
+        mutableStateOf(
+            if (isNewPhoto) "" else loadJournalEntry(context, assetPath)
+        )
+    }
+
+>>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
     LaunchedEffect(journalText) {
         if (journalText.isNotBlank()) {
             delay(500)
@@ -83,6 +138,7 @@ fun PhotoDetailScreen(
         }
     }
 
+<<<<<<< HEAD
     fun onAlbumToggle(album: StoredAlbum, checked: Boolean) {
         if (checked) addPhotoToAlbum(context, album.id, assetPath)
         else removePhotoFromAlbum(context, album.id, assetPath)
@@ -94,12 +150,18 @@ fun PhotoDetailScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
+=======
+    val canProceed = !requireJournal || journalText.trim().isNotBlank()
+
+    Column(modifier = modifier.fillMaxSize()) {
+>>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+<<<<<<< HEAD
             Text(
                 text = "← Back",
                 modifier = Modifier
@@ -110,6 +172,27 @@ fun PhotoDetailScreen(
                     },
                 style = MaterialTheme.typography.bodyLarge,
             )
+=======
+            if (!isNewPhoto) {
+                Text(
+                    text = "← Back",
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .clickable {
+                            saveJournalEntry(context, assetPath, journalText)
+                            onBack()
+                        },
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+            if (isNewPhoto) {
+                Text(
+                    text = "New Photo • $photoIndex of $totalPhotos",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+>>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
         }
         AssetImage(
             assetPath = assetPath,
@@ -117,6 +200,7 @@ fun PhotoDetailScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
                 .aspectRatio(1f),
+<<<<<<< HEAD
             contentScale = androidx.compose.ui.layout.ContentScale.Crop,
         )
         Column(
@@ -181,12 +265,25 @@ fun PhotoDetailScreen(
             }
             Text(
                 text = "Journal Entry",
+=======
+            contentScale = ContentScale.Crop,
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "Journal Entry" + if (requireJournal) " (required)" else "",
+>>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
             OutlinedTextField(
                 value = journalText,
                 onValueChange = { journalText = it },
+<<<<<<< HEAD
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 4,
                 maxLines = 12,
@@ -249,6 +346,33 @@ private fun AddAlbumDialog(
                     onClick = { if (albumName.trim().isNotBlank()) onConfirm(albumName.trim()) },
                     enabled = albumName.trim().isNotBlank(),
                 ) { Text("Create") }
+=======
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                minLines = 4,
+                maxLines = 12,
+                placeholder = {
+                    Text(
+                        if (isNewPhoto) "Write your thoughts about this new photo..."
+                        else "Write your thoughts..."
+                    )
+                },
+            )
+            if (onNext != null) {
+                Button(
+                    onClick = {
+                        saveJournalEntry(context, assetPath, journalText)
+                        onNext()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = canProceed,
+                ) {
+                    Text(
+                        text = if (photoIndex < totalPhotos) "Next" else "Done",
+                    )
+                }
+>>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
             }
         }
     }

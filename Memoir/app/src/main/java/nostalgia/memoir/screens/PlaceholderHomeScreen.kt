@@ -14,7 +14,13 @@ import nostalgia.memoir.screens.common.listImagesFromFolder
 import nostalgia.memoir.ui.theme.MemoirTheme
 
 @Composable
+<<<<<<< HEAD
 fun PlaceholderHomeScreen(modifier: Modifier = Modifier) {
+=======
+fun PlaceholderHomeScreen(
+    modifier: Modifier = Modifier,
+) {
+>>>>>>> f39bbb794ca1090314fd13ffc6616e78bebb2c5c
     val context = LocalContext.current
     var selectedPhotoPath by remember { mutableStateOf<String?>(null) }
     val photos = remember {
