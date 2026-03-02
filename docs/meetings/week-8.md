@@ -1,0 +1,6 @@
+- Lots of really good feedback and points from P4 Prorotype Presentation
+- Look into voice note memos
+  - student in class said it would be cool to have an option to, instead of write journal, use voice note
+  - this would allow raw moments captured by the speaker
+  - if on a trip with friends all friends acn join the voice note on one phone and capture excitement and energy
+- now that the demo is complete and the basic app is ready begin feature developments
