@@ -1,0 +1,5 @@
+- Feature development without priorities:
+- Voice note capability to capture excitement in moment and more than one person for journal entry
+- UI/UX loading screems
+- Enhanced images/icons/logo for app
+- Brainstorming for stretch goals that will add unique elements to the app and achievable complexity 
