@@ -1,1 +1,2 @@
-Everyone is continuing working on their assigned tasks based on the ClickUp board 
+- Everyone is continuing working on their assigned tasks based on the ClickUp board 
+- Continuing brainstorming ideas to make the app unique
