@@ -1,0 +1,3 @@
+- The team sets meetings throughout this week to get work done
+- The purpose of the meetings are to gather feedback for all the individual tasks we've been working on and give each other feedback
+- Right now the focus is on ensuring all feedback from teaching team are incorporated for the final design presentation
