@@ -17,9 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -27,14 +25,33 @@ import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import nostalgia.memoir.screens.*
 import nostalgia.memoir.ui.theme.MemoirTheme
+import nostalgia.memoir.auth.AuthManager
+import nostalgia.memoir.screens.auth.AuthGateScreen
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Button
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            var isLoggedIn by remember { mutableStateOf(AuthManager.repo().getCurrentUser() != null) }
+
             MemoirTheme {
-                MemoirApp()
+                if (!isLoggedIn) {
+                    AuthGateScreen {
+                        isLoggedIn = true
+                    }
+                } else {
+                    MemoirApp(
+                        onSignOut = {
+                            AuthManager.repo().signOut()
+                            isLoggedIn = false
+                        }
+                    )
+                }
             }
         }
     }
@@ -52,8 +69,9 @@ enum class AppDestinations(
 }
 
 @Composable
-fun MemoirApp() {
+fun MemoirApp(onSignOut: () -> Unit) {
     val context = LocalContext.current
+    
     var showOnboarding by remember {
         mutableStateOf(!hasCompletedNewPhotosOnboarding(context))
     }
@@ -64,14 +82,14 @@ fun MemoirApp() {
             modifier = Modifier.fillMaxSize(),
         )
     } else {
-        MainNavigation()
+        MainNavigation(onSignOut = onSignOut)
     }
 }
 
 @OptIn(ExperimentalMaterial3AdaptiveNavigationSuiteApi::class)
 @PreviewScreenSizes
 @Composable
-fun MainNavigation() {
+fun MainNavigation(onSignOut: () -> Unit) {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
 
     NavigationSuiteScaffold(
@@ -93,16 +111,59 @@ fun MainNavigation() {
         }
     ) {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(innerPadding),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Button(
+                    onClick = {
+                        onSignOut()
+                    }
+                ) {
+                    Text("Sign Out")
+                }
+            }
+
             when (currentDestination) {
-                AppDestinations.HOME -> PlaceholderHomeScreen(modifier = Modifier.fillMaxSize().padding(innerPadding))
-                AppDestinations.YOUR_ALBUMS -> PlaceholderYourAlbumsScreen(Modifier.fillMaxSize().padding(innerPadding))
-                AppDestinations.CAMERA -> PlaceholderCameraScreen(Modifier.fillMaxSize().padding(innerPadding))
-                AppDestinations.SHARED_ALBUMS -> PlaceholderSharedAlbumsScreen(Modifier.fillMaxSize().padding(innerPadding))
+                AppDestinations.HOME -> PlaceholderHomeScreen(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                )
+
+                AppDestinations.YOUR_ALBUMS -> PlaceholderYourAlbumsScreen(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                )
+
+                AppDestinations.CAMERA -> PlaceholderCameraScreen(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                )
+
+                AppDestinations.SHARED_ALBUMS -> PlaceholderSharedAlbumsScreen(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                )
+
                 AppDestinations.SEARCH ->
                     if (BuildConfig.DEBUG) {
-                        DatabaseSelfTestScreen(Modifier.fillMaxSize().padding(innerPadding))
+                        DatabaseSelfTestScreen(
+                            Modifier
+                                .fillMaxSize()
+                                .padding(innerPadding)
+                        )
                     } else {
-                        PlaceholderSearchScreen(Modifier.fillMaxSize().padding(innerPadding))
+                        PlaceholderSearchScreen(
+                            Modifier
+                                .fillMaxSize()
+                                .padding(innerPadding)
+                        )
                     }
             }
         }
