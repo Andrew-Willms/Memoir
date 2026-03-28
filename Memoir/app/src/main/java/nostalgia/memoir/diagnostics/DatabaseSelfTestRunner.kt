@@ -314,6 +314,57 @@ class DatabaseSelfTestRunner(
                     "Expected no linked album photos after remove"
                 }
             },
+            runAlbumTest("Photo can exist in multiple albums") { albumRepository, journalingRepository ->
+                val entryId = journalingRepository.createEntryAggregate(
+                    CreateJournalEntryInput(
+                        entryDateEpochDay = 21_150L,
+                        title = "Shared photo source",
+                        reflectionText = "One photo, two albums",
+                        photos = listOf(PhotoAssetDraft(contentUri = "content://album-photo-tests/shared")),
+                        tags = emptyList(),
+                    ),
+                )
+                val photoId = journalingRepository.getEntryAggregate(entryId)!!.photos.first().photo.id
+
+                val albumA = albumRepository.createAlbum(
+                    CreateAlbumInput(name = "Album A", ownerUserId = "owner-1"),
+                )
+                val albumB = albumRepository.createAlbum(
+                    CreateAlbumInput(name = "Album B", ownerUserId = "owner-1"),
+                )
+
+                require(albumRepository.addPhotoToAlbum(AddPhotoToAlbumInput(albumId = albumA, photoId = photoId))) {
+                    "Expected first album link"
+                }
+                require(albumRepository.addPhotoToAlbum(AddPhotoToAlbumInput(albumId = albumB, photoId = photoId))) {
+                    "Expected second album link"
+                }
+
+                require(albumRepository.getAlbumAggregate(albumA)?.photos?.size == 1) { "Expected photo in album A" }
+                require(albumRepository.getAlbumAggregate(albumB)?.photos?.size == 1) { "Expected photo in album B" }
+            },
+            runAlbumTest("Delete album removes aggregate") { albumRepository, journalingRepository ->
+                val entryId = journalingRepository.createEntryAggregate(
+                    CreateJournalEntryInput(
+                        entryDateEpochDay = 21_160L,
+                        title = "Delete album source",
+                        reflectionText = "Source",
+                        photos = listOf(PhotoAssetDraft(contentUri = "content://album-photo-tests/delete")),
+                        tags = emptyList(),
+                    ),
+                )
+                val photoId = journalingRepository.getEntryAggregate(entryId)!!.photos.first().photo.id
+
+                val albumId = albumRepository.createAlbum(
+                    CreateAlbumInput(name = "Disposable", ownerUserId = "owner-1"),
+                )
+                require(albumRepository.addPhotoToAlbum(AddPhotoToAlbumInput(albumId = albumId, photoId = photoId))) {
+                    "Expected album photo link before delete"
+                }
+
+                require(albumRepository.deleteAlbum(albumId)) { "Expected deleteAlbum=true" }
+                require(albumRepository.getAlbumAggregate(albumId) == null) { "Expected deleted album aggregate to be null" }
+            },
             runAlbumTest("Observe albums by owner") { albumRepository, _ ->
                 albumRepository.createAlbum(CreateAlbumInput(name = "Owner Album", ownerUserId = "owner-a"))
                 albumRepository.createAlbum(CreateAlbumInput(name = "Other Album", ownerUserId = "owner-b"))
