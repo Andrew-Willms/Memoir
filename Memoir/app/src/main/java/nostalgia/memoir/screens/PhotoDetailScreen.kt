@@ -2,6 +2,8 @@ package nostalgia.memoir.screens
 
 import android.content.Context
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -16,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,12 +37,17 @@ import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
 import nostalgia.memoir.screens.common.AssetImage
 import nostalgia.memoir.screens.data.StoredAlbum
+import nostalgia.memoir.screens.data.StoredPhotoTag
+import nostalgia.memoir.screens.data.StoredPhotoTagType
 import nostalgia.memoir.screens.data.addPhotoToAlbum
+import nostalgia.memoir.screens.data.addTagToPhoto
 import nostalgia.memoir.screens.data.createAlbum
 import nostalgia.memoir.screens.data.isPhotoInAlbum
 import nostalgia.memoir.screens.data.loadMyAlbums
 import nostalgia.memoir.screens.data.loadSharedAlbums
+import nostalgia.memoir.screens.data.loadTagsForPhoto
 import nostalgia.memoir.screens.data.removePhotoFromAlbum
+import nostalgia.memoir.screens.data.removeTagFromPhoto
 
 private const val PREFS_NAME = "journal_entries"
 private const val KEY_PREFIX = "journal_"
@@ -81,8 +89,10 @@ fun PhotoDetailScreen(
     var refreshTrigger by remember { mutableStateOf(0) }
     var showAddMyAlbum by remember { mutableStateOf(false) }
     var showAddSharedAlbum by remember { mutableStateOf(false) }
+    var showAddTag by remember { mutableStateOf(false) }
     val myAlbums = remember(refreshTrigger) { loadMyAlbums(context) }
     val sharedAlbums = remember(refreshTrigger) { loadSharedAlbums(context) }
+    val photoTags = remember(refreshTrigger, assetPath) { loadTagsForPhoto(context, assetPath) }
 
     LaunchedEffect(journalText) {
         if (journalText.isNotBlank()) {
@@ -204,6 +214,34 @@ fun PhotoDetailScreen(
                 Text("+ Add album")
             }
             Text(
+                text = "Tags",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            if (photoTags.isEmpty()) {
+                Text(
+                    text = "No tags added yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                TagBubbleRow(
+                    tags = photoTags,
+                    onTagClick = { tag ->
+                        removeTagFromPhoto(context, assetPath, tag)
+                        refreshTrigger++
+                    },
+                )
+                Text(
+                    text = "Tap a tag to remove it.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TextButton(onClick = { showAddTag = true }) {
+                Text("+ Add tag")
+            }
+            Text(
                 text = "Journal Entry",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
@@ -260,6 +298,20 @@ fun PhotoDetailScreen(
             },
         )
     }
+    if (showAddTag) {
+        AddTagDialog(
+            onDismiss = { showAddTag = false },
+            onConfirm = { type, value ->
+                addTagToPhoto(
+                    context = context,
+                    assetPath = assetPath,
+                    tag = StoredPhotoTag(type = type, value = value),
+                )
+                refreshTrigger++
+                showAddTag = false
+            },
+        )
+    }
 }
 
 @Composable
@@ -304,3 +356,130 @@ private fun AddAlbumDialog(
         }
     }
 }
+
+@Composable
+private fun AddTagDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (StoredPhotoTagType, String) -> Unit,
+) {
+    var selectedType by remember { mutableStateOf(StoredPhotoTagType.PERSON) }
+    var tagValue by remember { mutableStateOf("") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = "Add Tag",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                StoredPhotoTagType.values().forEach { type ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedType = type },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = selectedType == type,
+                            onClick = { selectedType = type },
+                        )
+                        Text(
+                            text = type.displayName,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                }
+                OutlinedTextField(
+                    value = tagValue,
+                    onValueChange = { tagValue = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text(selectedType.placeholder) },
+                    singleLine = true,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    TextButton(
+                        onClick = { onConfirm(selectedType, tagValue.trim()) },
+                        enabled = tagValue.trim().isNotBlank(),
+                    ) { Text("Add") }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TagBubbleRow(
+    tags: List<StoredPhotoTag>,
+    onTagClick: (StoredPhotoTag) -> Unit,
+) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        tags.forEach { tag ->
+            TagBubble(
+                tag = tag,
+                modifier = Modifier.clickable { onTagClick(tag) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun TagBubble(
+    tag: StoredPhotoTag,
+    modifier: Modifier = Modifier,
+) {
+    val containerColor = when (tag.type) {
+        StoredPhotoTagType.PERSON -> MaterialTheme.colorScheme.secondaryContainer
+        StoredPhotoTagType.LOCATION -> MaterialTheme.colorScheme.tertiaryContainer
+        StoredPhotoTagType.KEYWORD -> MaterialTheme.colorScheme.primaryContainer
+    }
+    val contentColor = when (tag.type) {
+        StoredPhotoTagType.PERSON -> MaterialTheme.colorScheme.onSecondaryContainer
+        StoredPhotoTagType.LOCATION -> MaterialTheme.colorScheme.onTertiaryContainer
+        StoredPhotoTagType.KEYWORD -> MaterialTheme.colorScheme.onPrimaryContainer
+    }
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(999.dp),
+        color = containerColor,
+    ) {
+        Text(
+            text = "${tag.type.displayName}: ${tag.value}",
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            color = contentColor,
+            style = MaterialTheme.typography.labelLarge,
+        )
+    }
+}
+
+private val StoredPhotoTagType.displayName: String
+    get() = when (this) {
+        StoredPhotoTagType.PERSON -> "Person"
+        StoredPhotoTagType.LOCATION -> "Location"
+        StoredPhotoTagType.KEYWORD -> "Keyword"
+    }
+
+private val StoredPhotoTagType.placeholder: String
+    get() = when (this) {
+        StoredPhotoTagType.PERSON -> "Who is in the photo?"
+        StoredPhotoTagType.LOCATION -> "Where was this taken?"
+        StoredPhotoTagType.KEYWORD -> "Add a keyword"
+    }
