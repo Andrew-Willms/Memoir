@@ -22,6 +22,18 @@ fun loadMyAlbums(context: Context): List<StoredAlbum> =
 fun loadSharedAlbums(context: Context): List<StoredAlbum> =
     loadAlbums(context, KEY_SHARED_ALBUMS, isShared = true)
 
+fun searchAlbums(context: Context, query: String): List<StoredAlbum> {
+    val normalizedQuery = query.trim()
+    if (normalizedQuery.isBlank()) return emptyList()
+
+    return (loadMyAlbums(context) + loadSharedAlbums(context))
+        .filter { album -> album.name.contains(normalizedQuery, ignoreCase = true) }
+        .sortedWith(
+            compareBy<StoredAlbum> { !it.name.equals(normalizedQuery, ignoreCase = true) }
+                .thenBy { it.name.lowercase() },
+        )
+}
+
 private fun loadAlbums(context: Context, key: String, isShared: Boolean): List<StoredAlbum> {
     val raw = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .getString(key, "") ?: ""

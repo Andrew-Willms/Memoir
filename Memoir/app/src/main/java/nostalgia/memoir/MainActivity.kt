@@ -151,20 +151,11 @@ fun MainNavigation(onSignOut: () -> Unit) {
                         .padding(innerPadding)
                 )
 
-                AppDestinations.SEARCH ->
-                    if (BuildConfig.DEBUG) {
-                        DatabaseSelfTestScreen(
-                            Modifier
-                                .fillMaxSize()
-                                .padding(innerPadding)
-                        )
-                    } else {
-                        PlaceholderSearchScreen(
-                            Modifier
-                                .fillMaxSize()
-                                .padding(innerPadding)
-                        )
-                    }
+                AppDestinations.SEARCH -> PlaceholderSearchScreen(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                )
             }
         }
     }

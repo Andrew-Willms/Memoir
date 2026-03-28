@@ -9,6 +9,11 @@ data class StoredPhotoTag(
     val value: String,
 )
 
+data class PhotoTagSearchResult(
+    val assetPath: String,
+    val matchingTags: List<StoredPhotoTag>,
+)
+
 enum class StoredPhotoTagType {
     PERSON,
     LOCATION,
@@ -62,6 +67,32 @@ fun removeTagFromPhoto(context: Context, assetPath: String, tag: StoredPhotoTag)
         }
 
     saveTagsForPhoto(context, assetPath, updated)
+}
+
+fun searchPhotosByTags(context: Context, query: String): List<PhotoTagSearchResult> {
+    val normalizedQuery = query.trim()
+    if (normalizedQuery.isBlank()) return emptyList()
+
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    return prefs.all.keys
+        .asSequence()
+        .filter { key -> key.startsWith(KEY_PHOTO_TAGS) }
+        .map { key ->
+            val assetPath = key.removePrefix(KEY_PHOTO_TAGS)
+            val matchingTags = loadTagsForPhoto(context, assetPath)
+                .filter { tag -> tag.value.contains(normalizedQuery, ignoreCase = true) }
+            PhotoTagSearchResult(
+                assetPath = assetPath,
+                matchingTags = matchingTags,
+            )
+        }
+        .filter { result -> result.matchingTags.isNotEmpty() }
+        .sortedWith(
+            compareBy<PhotoTagSearchResult> { result ->
+                result.matchingTags.none { tag -> tag.value.equals(normalizedQuery, ignoreCase = true) }
+            }.thenBy { it.assetPath.lowercase() },
+        )
+        .toList()
 }
 
 private fun saveTagsForPhoto(context: Context, assetPath: String, tags: List<StoredPhotoTag>) {
