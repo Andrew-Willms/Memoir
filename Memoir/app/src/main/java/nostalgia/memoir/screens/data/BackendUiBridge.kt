@@ -52,8 +52,13 @@ internal object BackendUiBridge {
     fun listAlbums(context: Context, isShared: Boolean): List<StoredAlbum> =
         runCatching {
             ensureMigrated(context)
-            runBlocking {
-                loadAlbumsFromBackend(context, isShared)
+            val legacy = loadLegacyAlbums(context, isShared)
+            if (legacy.isNotEmpty()) {
+                legacy
+            } else {
+                runBlocking {
+                    loadAlbumsFromBackend(context, isShared)
+                }
             }
         }.getOrElse {
             loadLegacyAlbums(context, isShared)
@@ -64,8 +69,18 @@ internal object BackendUiBridge {
         if (normalizedQuery.isBlank()) return emptyList()
         return runCatching {
             ensureMigrated(context)
-            runBlocking {
-                searchAlbumsFromBackend(context, normalizedQuery)
+            val legacyAlbums = loadLegacyAlbums(context, isShared = false) + loadLegacyAlbums(context, isShared = true)
+            if (legacyAlbums.isNotEmpty()) {
+                legacyAlbums
+                    .filter { album -> album.name.contains(normalizedQuery, ignoreCase = true) }
+                    .sortedWith(
+                        compareBy<StoredAlbum> { !it.name.equals(normalizedQuery, ignoreCase = true) }
+                            .thenBy { it.name.lowercase() },
+                    )
+            } else {
+                runBlocking {
+                    searchAlbumsFromBackend(context, normalizedQuery)
+                }
             }
         }.getOrElse {
             (loadLegacyAlbums(context, isShared = false) + loadLegacyAlbums(context, isShared = true))
@@ -101,8 +116,12 @@ internal object BackendUiBridge {
     fun loadAlbumPhotoPaths(context: Context, albumId: String): Set<String> =
         runCatching {
             ensureMigrated(context)
-            runBlocking {
-                loadAlbumPhotoPathsFromBackend(context, albumId)
+            if (legacyAlbumExists(context, albumId)) {
+                loadLegacyAlbumPhotoPaths(context, albumId)
+            } else {
+                runBlocking {
+                    loadAlbumPhotoPathsFromBackend(context, albumId)
+                }
             }
         }.getOrElse {
             loadLegacyAlbumPhotoPaths(context, albumId)
@@ -128,8 +147,12 @@ internal object BackendUiBridge {
     fun loadPhotoTags(context: Context, assetPath: String): List<StoredPhotoTag> =
         runCatching {
             ensureMigrated(context)
-            runBlocking {
-                loadPhotoTagsFromBackend(context, assetPath)
+            if (hasLegacyPhotoTagRecord(context, assetPath)) {
+                loadLegacyPhotoTags(context, assetPath)
+            } else {
+                runBlocking {
+                    loadPhotoTagsFromBackend(context, assetPath)
+                }
             }
         }.getOrElse {
             loadLegacyPhotoTags(context, assetPath)
@@ -140,8 +163,22 @@ internal object BackendUiBridge {
         if (normalizedQuery.isBlank()) return emptyList()
         return runCatching {
             ensureMigrated(context)
-            runBlocking {
-                searchPhotosByTagsFromBackend(context, normalizedQuery)
+            val legacyEntries = loadLegacyPhotoTagEntries(context)
+            if (legacyEntries.isNotEmpty()) {
+                legacyEntries
+                    .mapNotNull { (assetPath, tags) ->
+                        val matchingTags = tags.filter { tag -> tag.value.contains(normalizedQuery, ignoreCase = true) }
+                        if (matchingTags.isEmpty()) null else PhotoTagSearchResult(assetPath, matchingTags)
+                    }
+                    .sortedWith(
+                        compareBy<PhotoTagSearchResult> { result ->
+                            result.matchingTags.none { tag -> tag.value.equals(normalizedQuery, ignoreCase = true) }
+                        }.thenBy { it.assetPath.lowercase() },
+                    )
+            } else {
+                runBlocking {
+                    searchPhotosByTagsFromBackend(context, normalizedQuery)
+                }
             }
         }.getOrElse {
             loadLegacyPhotoTagEntries(context)
@@ -186,10 +223,13 @@ internal object BackendUiBridge {
         val legacyValue = loadLegacyJournalEntry(context, assetPath)
         return runCatching {
             ensureMigrated(context)
-            runBlocking {
-                loadJournalEntryFromBackend(context, assetPath)
-                    ?: legacyValue
-                    ?: defaultValue
+            if (hasLegacyJournalRecord(context, assetPath)) {
+                legacyValue ?: defaultValue
+            } else {
+                runBlocking {
+                    loadJournalEntryFromBackend(context, assetPath)
+                        ?: defaultValue
+                }
             }
         }.getOrElse {
             legacyValue ?: defaultValue
@@ -717,3 +757,15 @@ private fun parseStoredPhotoTags(raw: String): List<StoredPhotoTag> =
             }
         }
     }.getOrDefault(emptyList())
+
+private fun legacyAlbumExists(context: Context, albumId: String): Boolean =
+    (loadLegacyAlbums(context, isShared = false) + loadLegacyAlbums(context, isShared = true))
+        .any { it.id == albumId }
+
+private fun hasLegacyPhotoTagRecord(context: Context, assetPath: String): Boolean =
+    context.getSharedPreferences(LEGACY_ALBUM_PREFS_NAME, Context.MODE_PRIVATE)
+        .contains(LEGACY_PHOTO_TAGS_KEY_PREFIX + assetPath)
+
+private fun hasLegacyJournalRecord(context: Context, assetPath: String): Boolean =
+    context.getSharedPreferences(LEGACY_JOURNAL_PREFS_NAME, Context.MODE_PRIVATE)
+        .contains(LEGACY_JOURNAL_KEY_PREFIX + assetPath)

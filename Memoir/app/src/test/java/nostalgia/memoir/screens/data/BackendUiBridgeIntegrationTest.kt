@@ -99,6 +99,34 @@ class BackendUiBridgeIntegrationTest {
     }
 
     @Test
+    fun tagReadOrderMatchesInsertionOrder() = runBlocking {
+        addTagToPhoto(context, "photos/5.jpg", StoredPhotoTag(StoredPhotoTagType.PERSON, "Ava"))
+        addTagToPhoto(context, "photos/5.jpg", StoredPhotoTag(StoredPhotoTagType.LOCATION, "Seattle"))
+        addTagToPhoto(context, "photos/5.jpg", StoredPhotoTag(StoredPhotoTagType.KEYWORD, "Ocean"))
+
+        val loadedTags = loadTagsForPhoto(context, "photos/5.jpg")
+
+        assertEquals(
+            listOf("Ava", "Seattle", "Ocean"),
+            loadedTags.map { it.value },
+        )
+    }
+
+    @Test
+    fun albumSearchMatchesLegacyOrderAndExactMatchFirst() = runBlocking {
+        createAlbum(context, name = "Seattle Trip", isShared = false)
+        createAlbum(context, name = "Mexico", isShared = true)
+        createAlbum(context, name = "Seattle", isShared = false)
+
+        val searchResults = searchAlbums(context, "Seattle")
+
+        assertEquals(
+            listOf("Seattle", "Seattle Trip"),
+            searchResults.map { it.name },
+        )
+    }
+
+    @Test
     fun legacyPrefsMigrateIntoBackendForAlbumsTagsAndJournals() = runBlocking {
         seedLegacyAlbumPrefs()
         seedLegacyTagPrefs()
