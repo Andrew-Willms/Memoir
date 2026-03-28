@@ -7,9 +7,10 @@ data class StoredPhotoTag(
     val value: String,
 )
 
-data class PhotoTagSearchResult(
+data class PhotoSearchResult(
     val assetPath: String,
     val matchingTags: List<StoredPhotoTag>,
+    val matchingJournalPreviews: List<String> = emptyList(),
 )
 
 enum class StoredPhotoTagType {
@@ -29,5 +30,8 @@ fun removeTagFromPhoto(context: Context, assetPath: String, tag: StoredPhotoTag)
     BackendUiBridge.setTagOnPhoto(context, assetPath, tag, present = false)
 }
 
-fun searchPhotosByTags(context: Context, query: String): List<PhotoTagSearchResult> =
-    BackendUiBridge.searchPhotosByTags(context, query)
+fun searchPhotos(context: Context, query: String): List<PhotoSearchResult> =
+    BackendUiBridge.searchPhotos(context, query)
+
+fun searchPhotosByTags(context: Context, query: String): List<PhotoSearchResult> =
+    searchPhotos(context, query)

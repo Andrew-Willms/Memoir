@@ -76,7 +76,7 @@ class BackendUiBridgeIntegrationTest {
         addTagToPhoto(context, "photos/3.jpg", StoredPhotoTag(StoredPhotoTagType.KEYWORD, "sunset"))
 
         val loadedTags = loadTagsForPhoto(context, "photos/2.jpg")
-        val searchResults = searchPhotosByTags(context, "Sam")
+        val searchResults = searchPhotos(context, "Sam")
 
         assertEquals(2, loadedTags.size)
         assertEquals(1, searchResults.size)
@@ -135,7 +135,7 @@ class BackendUiBridgeIntegrationTest {
         assertEquals(listOf("Legacy Album"), loadMyAlbums(context).map { it.name })
         assertEquals(setOf("photos/9.jpg"), loadPhotosInAlbum(context, "legacy-album-id"))
         assertEquals("Legacy reflection", loadJournalEntry(context, "photos/9.jpg", "Write your thoughts..."))
-        assertEquals(1, searchPhotosByTags(context, "beach").size)
+        assertEquals(1, searchPhotos(context, "beach").size)
 
         val database = MemoirDatabaseProvider.getInstance(context)
         val migratedAlbum = database.albumDao().getById("legacy-album-id")
@@ -155,6 +155,44 @@ class BackendUiBridgeIntegrationTest {
         val tagLinks = database.photoTagDao().getByPhotoIds(listOf(requireNotNull(migratedPhoto).id))
         val tags = database.tagDao().getByIds(tagLinks.map { it.tagId })
         assertTrue(tags.any { it.value == "beach" && it.type == TagType.KEYWORD })
+    }
+
+    @Test
+    fun photoSearchReturnsJournalMatchesFromBackend() = runBlocking {
+        saveJournalEntry(
+            context,
+            "photos/7.jpg",
+            "We watched the northern lights dancing over the lake all night.",
+        )
+
+        val results = searchPhotos(context, "northern")
+
+        assertEquals(1, results.size)
+        assertEquals("photos/7.jpg", results.first().assetPath)
+        assertTrue(results.first().matchingTags.isEmpty())
+        assertTrue(results.first().matchingJournalPreviews.first().contains("northern", ignoreCase = true))
+
+        val database = MemoirDatabaseProvider.getInstance(context)
+        val matchedEntries = database.journalEntryDao().searchByFullText("northern*")
+        assertEquals(1, matchedEntries.size)
+        assertEquals("We watched the northern lights dancing over the lake all night.", matchedEntries.first().reflectionText)
+    }
+
+    @Test
+    fun photoSearchMergesTagAndJournalMatchesForSamePhoto() = runBlocking {
+        addTagToPhoto(context, "photos/8.jpg", StoredPhotoTag(StoredPhotoTagType.KEYWORD, "Sunset"))
+        saveJournalEntry(
+            context,
+            "photos/8.jpg",
+            "Sunset reflections and late snacks after the hike.",
+        )
+
+        val results = searchPhotos(context, "sunset")
+
+        assertEquals(1, results.size)
+        assertEquals("photos/8.jpg", results.first().assetPath)
+        assertEquals(listOf("Sunset"), results.first().matchingTags.map { it.value })
+        assertTrue(results.first().matchingJournalPreviews.isNotEmpty())
     }
 
     private fun clearLegacyPrefs() {
