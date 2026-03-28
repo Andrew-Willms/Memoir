@@ -9,6 +9,7 @@ object AlbumUseCaseFactory {
         val repository = AlbumRepositoryFactory.create(context)
         return AlbumUseCases(
             createAlbum = CreateAlbumUseCase(repository),
+            deleteAlbum = DeleteAlbumUseCase(repository),
             renameAlbum = RenameAlbumUseCase(repository),
             getAlbumAggregate = GetAlbumAggregateUseCase(repository),
             addPhotoToAlbum = AddPhotoToAlbumUseCase(repository),

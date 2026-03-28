@@ -2,6 +2,7 @@ package nostalgia.memoir.domain.usecase
 
 data class AlbumUseCases(
     val createAlbum: CreateAlbumUseCase,
+    val deleteAlbum: DeleteAlbumUseCase,
     val renameAlbum: RenameAlbumUseCase,
     val getAlbumAggregate: GetAlbumAggregateUseCase,
     val addPhotoToAlbum: AddPhotoToAlbumUseCase,

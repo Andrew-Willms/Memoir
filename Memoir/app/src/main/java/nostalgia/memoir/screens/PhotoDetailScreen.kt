@@ -43,32 +43,19 @@ import nostalgia.memoir.screens.data.addPhotoToAlbum
 import nostalgia.memoir.screens.data.addTagToPhoto
 import nostalgia.memoir.screens.data.createAlbum
 import nostalgia.memoir.screens.data.isPhotoInAlbum
+import nostalgia.memoir.screens.data.loadJournalEntry
 import nostalgia.memoir.screens.data.loadMyAlbums
 import nostalgia.memoir.screens.data.loadSharedAlbums
 import nostalgia.memoir.screens.data.loadTagsForPhoto
 import nostalgia.memoir.screens.data.removePhotoFromAlbum
 import nostalgia.memoir.screens.data.removeTagFromPhoto
+import nostalgia.memoir.screens.data.saveJournalEntry
 
-private const val PREFS_NAME = "journal_entries"
-private const val KEY_PREFIX = "journal_"
 private val MOCK_JOURNAL_ENTRIES = mapOf(
     "photos/1.jpg" to "A beautiful day at the beach.",
     "photos/2.jpg" to "Family dinner – everyone together.",
     "photos/3.jpg" to "Sunset over the mountains.",
 )
-
-private fun loadJournalEntry(context: Context, assetPath: String): String {
-    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    prefs.getString(KEY_PREFIX + assetPath, null)?.let { return it }
-    return MOCK_JOURNAL_ENTRIES[assetPath] ?: "Write your thoughts..."
-}
-
-private fun saveJournalEntry(context: Context, assetPath: String, text: String) {
-    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        .edit()
-        .putString(KEY_PREFIX + assetPath, text)
-        .apply()
-}
 
 @Composable
 fun PhotoDetailScreen(
@@ -83,7 +70,13 @@ fun PhotoDetailScreen(
 ) {
     val context = LocalContext.current
     var journalText by remember(assetPath) {
-        mutableStateOf(loadJournalEntry(context, assetPath))
+        mutableStateOf(
+            loadJournalEntry(
+                context = context,
+                assetPath = assetPath,
+                defaultValue = MOCK_JOURNAL_ENTRIES[assetPath] ?: "Write your thoughts...",
+            ),
+        )
     }
 
     var refreshTrigger by remember { mutableStateOf(0) }
