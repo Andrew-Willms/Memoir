@@ -70,6 +70,32 @@ class RoomAlbumRepositoryTest {
     }
 
     @Test
+    fun deleteAlbum_removesAggregateAndCascadesLinks() = runBlocking {
+        val journalEntryId = journalingRepository.createEntryAggregate(
+            CreateJournalEntryInput(
+                entryDateEpochDay = 20_050L,
+                title = "Delete me",
+                reflectionText = "Source",
+                photos = listOf(PhotoAssetDraft(contentUri = "content://album-delete/1")),
+                tags = emptyList(),
+            ),
+        )
+        val photoId = journalingRepository.getEntryAggregate(journalEntryId)!!.photos.first().photo.id
+
+        val albumId = albumRepository.createAlbum(
+            CreateAlbumInput(name = "Disposable", ownerUserId = "owner-1"),
+        )
+        assertTrue(albumRepository.addPhotoToAlbum(AddPhotoToAlbumInput(albumId = albumId, photoId = photoId)))
+
+        val deleted = albumRepository.deleteAlbum(albumId)
+
+        assertTrue(deleted)
+        assertEquals(null, albumRepository.getAlbumAggregate(albumId))
+        assertTrue(albumRepository.observePhotosForAlbum(albumId).first().isEmpty())
+        assertTrue(albumRepository.observeMembersForAlbum(albumId).first().isEmpty())
+    }
+
+    @Test
     fun addAndRemoveEntryFromAlbum_updatesAggregate() = runBlocking {
         val entryId = journalingRepository.createEntryAggregate(
             CreateJournalEntryInput(
@@ -181,11 +207,11 @@ class RoomAlbumRepositoryTest {
     }
 
     @Test
-    fun photoBelongsToSingleAlbum_whenRelinkedMovesAlbum() = runBlocking {
+    fun photoCanBelongToMultipleAlbums() = runBlocking {
         val journalEntryId = journalingRepository.createEntryAggregate(
             CreateJournalEntryInput(
                 entryDateEpochDay = 20_200L,
-                title = "Single album photo",
+                title = "Multi album photo",
                 reflectionText = "Source",
                 photos = listOf(PhotoAssetDraft(contentUri = "content://album-photos/single")),
                 tags = emptyList(),
@@ -203,8 +229,9 @@ class RoomAlbumRepositoryTest {
         val albumAAggregate = albumRepository.getAlbumAggregate(albumA)!!
         val albumBAggregate = albumRepository.getAlbumAggregate(albumB)!!
 
-        assertTrue(albumAAggregate.photos.isEmpty())
+        assertEquals(1, albumAAggregate.photos.size)
         assertEquals(1, albumBAggregate.photos.size)
         assertEquals(photoId, albumBAggregate.photos.first().photo.id)
+        assertEquals(photoId, albumAAggregate.photos.first().photo.id)
     }
 }
