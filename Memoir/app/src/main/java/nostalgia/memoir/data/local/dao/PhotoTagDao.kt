@@ -14,4 +14,10 @@ interface PhotoTagDao {
 
     @Query("SELECT * FROM photo_tag WHERE photoId IN (:photoIds)")
     suspend fun getByPhotoIds(photoIds: List<String>): List<PhotoTagCrossRef>
+
+    @Query("SELECT * FROM photo_tag WHERE tagId IN (:tagIds)")
+    suspend fun getByTagIds(tagIds: List<String>): List<PhotoTagCrossRef>
+
+    @Query("DELETE FROM photo_tag WHERE photoId = :photoId AND tagId = :tagId")
+    suspend fun deleteLink(photoId: String, tagId: String)
 }

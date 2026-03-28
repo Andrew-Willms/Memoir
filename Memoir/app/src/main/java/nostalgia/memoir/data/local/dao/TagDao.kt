@@ -22,4 +22,16 @@ interface TagDao {
 
     @Query("SELECT * FROM tag WHERE id IN (:tagIds)")
     suspend fun getByIds(tagIds: List<String>): List<TagEntity>
+
+    @Query(
+        """
+        SELECT *
+        FROM tag
+        WHERE value LIKE '%' || :query || '%'
+        ORDER BY
+            CASE WHEN LOWER(value) = LOWER(:query) THEN 0 ELSE 1 END,
+            LOWER(value) ASC
+        """,
+    )
+    suspend fun searchByValue(query: String): List<TagEntity>
 }

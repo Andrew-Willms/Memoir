@@ -20,6 +20,17 @@ interface AlbumPhotoDao {
     @Query("SELECT * FROM album_photo WHERE albumId = :albumId ORDER BY orderIndex ASC")
     suspend fun getLinksByAlbumId(albumId: String): List<AlbumPhotoCrossRef>
 
+    @Query(
+        """
+        SELECT pa.contentUri
+        FROM album_photo ap
+        INNER JOIN photo_asset pa ON pa.id = ap.photoId
+        WHERE ap.albumId = :albumId
+        ORDER BY ap.orderIndex ASC
+        """,
+    )
+    suspend fun getPhotoContentUrisByAlbumId(albumId: String): List<String>
+
     @Query("SELECT COALESCE(MAX(orderIndex), -1) + 1 FROM album_photo WHERE albumId = :albumId")
     suspend fun nextOrderIndex(albumId: String): Int
 

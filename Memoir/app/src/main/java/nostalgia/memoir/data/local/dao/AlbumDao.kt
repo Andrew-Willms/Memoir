@@ -24,6 +24,33 @@ interface AlbumDao {
         """
         SELECT *
         FROM album
+        WHERE ownerUserId = :ownerUserId AND visibility = :visibility
+        ORDER BY createdAt ASC
+        """,
+    )
+    suspend fun getByOwnerAndVisibility(ownerUserId: String, visibility: String): List<AlbumEntity>
+
+    @Query(
+        """
+        SELECT *
+        FROM album
+        WHERE ownerUserId = :ownerUserId
+            AND visibility = :visibility
+            AND name LIKE '%' || :query || '%'
+        ORDER BY
+            CASE WHEN LOWER(name) = LOWER(:query) THEN 0 ELSE 1 END,
+            LOWER(name) ASC
+        """,
+    )
+    suspend fun searchByOwnerAndVisibility(ownerUserId: String, visibility: String, query: String): List<AlbumEntity>
+
+    @Query("DELETE FROM album WHERE id = :albumId")
+    suspend fun deleteById(albumId: String)
+
+    @Query(
+        """
+        SELECT *
+        FROM album
         WHERE ownerUserId = :ownerUserId
         ORDER BY updatedAt DESC
         """,
