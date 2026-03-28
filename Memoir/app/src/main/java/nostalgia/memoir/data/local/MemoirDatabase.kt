@@ -19,6 +19,7 @@ import nostalgia.memoir.data.local.entities.AlbumMemberEntity
 import nostalgia.memoir.data.local.entities.AlbumPhotoCrossRef
 import nostalgia.memoir.data.local.entities.EntryPhotoCrossRef
 import nostalgia.memoir.data.local.entities.JournalEntryEntity
+import nostalgia.memoir.data.local.entities.JournalEntryFtsEntity
 import nostalgia.memoir.data.local.entities.PhotoTagCrossRef
 import nostalgia.memoir.data.local.entities.PhotoAssetEntity
 import nostalgia.memoir.data.local.entities.TagEntity
@@ -26,6 +27,7 @@ import nostalgia.memoir.data.local.entities.TagEntity
 @Database(
     entities = [
         JournalEntryEntity::class,
+        JournalEntryFtsEntity::class,
         PhotoAssetEntity::class,
         EntryPhotoCrossRef::class,
         TagEntity::class,
@@ -35,7 +37,7 @@ import nostalgia.memoir.data.local.entities.TagEntity
         AlbumMemberEntity::class,
         AlbumPhotoCrossRef::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(RoomTypeConverters::class)

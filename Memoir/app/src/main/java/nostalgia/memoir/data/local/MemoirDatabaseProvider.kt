@@ -2,6 +2,7 @@ package nostalgia.memoir.data.local
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
@@ -22,6 +23,8 @@ object MemoirDatabaseProvider {
                 .addMigrations(MIGRATION_2_3)
                 .addMigrations(MIGRATION_3_4)
                 .addMigrations(MIGRATION_4_5)
+                .addMigrations(MIGRATION_5_6)
+                .addCallback(JOURNAL_ENTRY_FTS_CALLBACK)
                 .build()
                 .also { created -> instance = created }
         }
@@ -145,5 +148,67 @@ object MemoirDatabaseProvider {
             db.execSQL("DROP INDEX IF EXISTS `index_album_photo_photoId`")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_album_photo_photoId` ON `album_photo` (`photoId`)")
         }
+    }
+
+    private val MIGRATION_5_6: Migration = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS `journal_entry_fts`
+                USING FTS4(`entryId`, `title`, `reflectionText`, tokenize=unicode61)
+                """.trimIndent(),
+            )
+            installJournalEntryFtsTriggers(db)
+            db.execSQL(
+                """
+                INSERT INTO `journal_entry_fts`(`entryId`, `title`, `reflectionText`)
+                SELECT `id`, `title`, `reflectionText`
+                FROM `journal_entry`
+                """.trimIndent(),
+            )
+        }
+    }
+
+    private val JOURNAL_ENTRY_FTS_CALLBACK = object : RoomDatabase.Callback() {
+        override fun onCreate(db: SupportSQLiteDatabase) {
+            installJournalEntryFtsTriggers(db)
+        }
+
+        override fun onOpen(db: SupportSQLiteDatabase) {
+            installJournalEntryFtsTriggers(db)
+        }
+    }
+
+    private fun installJournalEntryFtsTriggers(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TRIGGER IF NOT EXISTS `journal_entry_fts_insert`
+            AFTER INSERT ON `journal_entry`
+            BEGIN
+                INSERT INTO `journal_entry_fts`(`entryId`, `title`, `reflectionText`)
+                VALUES (new.`id`, new.`title`, new.`reflectionText`);
+            END
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE TRIGGER IF NOT EXISTS `journal_entry_fts_update`
+            AFTER UPDATE ON `journal_entry`
+            BEGIN
+                DELETE FROM `journal_entry_fts` WHERE `entryId` = old.`id`;
+                INSERT INTO `journal_entry_fts`(`entryId`, `title`, `reflectionText`)
+                VALUES (new.`id`, new.`title`, new.`reflectionText`);
+            END
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE TRIGGER IF NOT EXISTS `journal_entry_fts_delete`
+            AFTER DELETE ON `journal_entry`
+            BEGIN
+                DELETE FROM `journal_entry_fts` WHERE `entryId` = old.`id`;
+            END
+            """.trimIndent(),
+        )
     }
 }

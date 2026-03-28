@@ -158,41 +158,42 @@ internal object BackendUiBridge {
             loadLegacyPhotoTags(context, assetPath)
         }
 
-    fun searchPhotosByTags(context: Context, query: String): List<PhotoTagSearchResult> {
+    fun searchPhotos(context: Context, query: String): List<PhotoSearchResult> {
         val normalizedQuery = query.trim()
         if (normalizedQuery.isBlank()) return emptyList()
         return runCatching {
             ensureMigrated(context)
-            val legacyEntries = loadLegacyPhotoTagEntries(context)
-            if (legacyEntries.isNotEmpty()) {
-                legacyEntries
-                    .mapNotNull { (assetPath, tags) ->
-                        val matchingTags = tags.filter { tag -> tag.value.contains(normalizedQuery, ignoreCase = true) }
-                        if (matchingTags.isEmpty()) null else PhotoTagSearchResult(assetPath, matchingTags)
-                    }
-                    .sortedWith(
-                        compareBy<PhotoTagSearchResult> { result ->
-                            result.matchingTags.none { tag -> tag.value.equals(normalizedQuery, ignoreCase = true) }
-                        }.thenBy { it.assetPath.lowercase() },
-                    )
-            } else {
-                runBlocking {
-                    searchPhotosByTagsFromBackend(context, normalizedQuery)
-                }
+            runBlocking {
+                searchPhotosFromBackend(context, normalizedQuery)
             }
         }.getOrElse {
-            loadLegacyPhotoTagEntries(context)
-                .mapNotNull { (assetPath, tags) ->
-                    val matchingTags = tags.filter { tag -> tag.value.contains(normalizedQuery, ignoreCase = true) }
-                    if (matchingTags.isEmpty()) null else PhotoTagSearchResult(assetPath, matchingTags)
-                }
-                .sortedWith(
-                    compareBy<PhotoTagSearchResult> { result ->
-                        result.matchingTags.none { tag -> tag.value.equals(normalizedQuery, ignoreCase = true) }
-                    }.thenBy { it.assetPath.lowercase() },
-                )
+            mergePhotoSearchResults(
+                query = normalizedQuery,
+                tagResults = loadLegacyPhotoTagEntries(context)
+                    .mapNotNull { (assetPath, tags) ->
+                        val matchingTags = tags.filter { tag -> tag.value.contains(normalizedQuery, ignoreCase = true) }
+                        if (matchingTags.isEmpty()) {
+                            null
+                        } else {
+                            PhotoSearchResult(assetPath = assetPath, matchingTags = matchingTags)
+                        }
+                    },
+                journalMatches = loadLegacyJournalEntries(context)
+                    .mapNotNull { (assetPath, reflectionText) ->
+                        val preview = buildJournalMatchPreview(
+                            title = null,
+                            reflectionText = reflectionText,
+                            query = normalizedQuery,
+                        ) ?: return@mapNotNull null
+                        assetPath to listOf(preview)
+                    }
+                    .toMap(),
+            )
         }
     }
+
+    fun searchPhotosByTags(context: Context, query: String): List<PhotoSearchResult> =
+        searchPhotos(context, query)
 
     fun setTagOnPhoto(context: Context, assetPath: String, tag: StoredPhotoTag, present: Boolean) {
         val current = loadLegacyPhotoTags(context, assetPath).toMutableList()
@@ -325,7 +326,13 @@ internal object BackendUiBridge {
         }.distinct()
     }
 
-    private suspend fun searchPhotosByTagsFromBackend(context: Context, query: String): List<PhotoTagSearchResult> {
+    private suspend fun searchPhotosFromBackend(context: Context, query: String): List<PhotoSearchResult> {
+        val tagResults = searchPhotosByTagsFromBackend(context, query)
+        val journalMatches = searchPhotosByJournalTextFromBackend(context, query)
+        return mergePhotoSearchResults(query, tagResults, journalMatches)
+    }
+
+    private suspend fun searchPhotosByTagsFromBackend(context: Context, query: String): List<PhotoSearchResult> {
         val database = MemoirDatabaseProvider.getInstance(context)
         val matchedTags = database.tagDao().searchByValue(query)
         if (matchedTags.isEmpty()) return emptyList()
@@ -346,21 +353,126 @@ internal object BackendUiBridge {
                     .distinct()
                 if (matchingTags.isEmpty()) return@mapNotNull null
 
-                PhotoTagSearchResult(
+                PhotoSearchResult(
                     assetPath = photo.contentUri,
                     matchingTags = matchingTags,
                 )
             }
+    }
+
+    private suspend fun searchPhotosByJournalTextFromBackend(
+        context: Context,
+        query: String,
+    ): Map<String, List<String>> {
+        val ftsQuery = buildFullTextQuery(query) ?: return emptyMap()
+        val database = MemoirDatabaseProvider.getInstance(context)
+        val matchedEntries = database.journalEntryDao().searchByFullText(ftsQuery)
+        if (matchedEntries.isEmpty()) return emptyMap()
+
+        val matchedEntryIds = matchedEntries.map { it.id }
+        val entryOrder = matchedEntryIds.withIndex().associate { indexed -> indexed.value to indexed.index }
+        val entryLinks = database.entryPhotoDao()
+            .getByEntryIdsOrdered(matchedEntryIds)
             .sortedWith(
-                compareBy<PhotoTagSearchResult> { result ->
-                    result.matchingTags.none { tag -> tag.value.equals(query, ignoreCase = true) }
-                }.thenBy { it.assetPath.lowercase() },
+                compareBy<EntryPhotoCrossRef> { entryOrder[it.entryId] ?: Int.MAX_VALUE }
+                    .thenBy { it.orderIndex },
             )
+        if (entryLinks.isEmpty()) return emptyMap()
+
+        val photosById = database.photoAssetDao()
+            .getByIds(entryLinks.map { it.photoId }.distinct())
+            .associateBy { it.id }
+        val previewsByEntryId = matchedEntries.associate { entry ->
+            entry.id to buildJournalMatchPreview(entry.title, entry.reflectionText, query)
+        }
+
+        val previewsByAssetPath = linkedMapOf<String, MutableList<String>>()
+        entryLinks.forEach { link ->
+            val photo = photosById[link.photoId] ?: return@forEach
+            if (!photo.contentUri.isUiManagedAssetPath()) return@forEach
+
+            val preview = previewsByEntryId[link.entryId] ?: return@forEach
+            val previews = previewsByAssetPath.getOrPut(photo.contentUri) { mutableListOf() }
+            if (preview !in previews) {
+                previews += preview
+            }
+        }
+        return previewsByAssetPath
     }
 
     private suspend fun loadJournalEntryFromBackend(context: Context, assetPath: String): String? {
         val database = MemoirDatabaseProvider.getInstance(context)
         return database.journalEntryDao().getById(journalEntryIdForAsset(assetPath))?.reflectionText
+    }
+
+    private fun mergePhotoSearchResults(
+        query: String,
+        tagResults: List<PhotoSearchResult>,
+        journalMatches: Map<String, List<String>>,
+    ): List<PhotoSearchResult> {
+        val resultsByAssetPath = linkedMapOf<String, PhotoSearchResult>()
+        tagResults.forEach { result ->
+            resultsByAssetPath[result.assetPath] = result
+        }
+        journalMatches.forEach { (assetPath, previews) ->
+            val existing = resultsByAssetPath[assetPath]
+            resultsByAssetPath[assetPath] = if (existing == null) {
+                PhotoSearchResult(
+                    assetPath = assetPath,
+                    matchingTags = emptyList(),
+                    matchingJournalPreviews = previews,
+                )
+            } else {
+                existing.copy(matchingJournalPreviews = previews)
+            }
+        }
+
+        return resultsByAssetPath.values.sortedWith(
+            compareBy<PhotoSearchResult> { result ->
+                result.matchingTags.none { tag -> tag.value.equals(query, ignoreCase = true) }
+            }.thenBy { it.matchingTags.isEmpty() }
+                .thenBy { it.assetPath.lowercase() },
+        )
+    }
+
+    private fun buildFullTextQuery(query: String): String? =
+        query
+            .trim()
+            .split(Regex("\\s+"))
+            .mapNotNull { token ->
+                token
+                    .replace(Regex("[^\\p{L}\\p{N}]"), "")
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { "$it*" }
+            }
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString(" ")
+
+    private fun buildJournalMatchPreview(
+        title: String?,
+        reflectionText: String,
+        query: String,
+    ): String? {
+        val normalizedQuery = query.trim()
+        if (normalizedQuery.isEmpty()) return null
+
+        val titleValue = title?.trim().orEmpty()
+        if (titleValue.contains(normalizedQuery, ignoreCase = true)) {
+            return titleValue
+        }
+
+        val reflectionValue = reflectionText.trim()
+        if (!reflectionValue.contains(normalizedQuery, ignoreCase = true)) {
+            return null
+        }
+
+        val matchIndex = reflectionValue.indexOf(normalizedQuery, ignoreCase = true)
+        val previewRadius = 28
+        val startIndex = (matchIndex - previewRadius).coerceAtLeast(0)
+        val endIndex = (matchIndex + normalizedQuery.length + previewRadius).coerceAtMost(reflectionValue.length)
+        val prefix = if (startIndex > 0) "..." else ""
+        val suffix = if (endIndex < reflectionValue.length) "..." else ""
+        return prefix + reflectionValue.substring(startIndex, endIndex) + suffix
     }
 
     private suspend fun synchronizeAlbumRecord(context: Context, album: StoredAlbum) {
