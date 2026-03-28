@@ -32,15 +32,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import nostalgia.memoir.screens.common.AssetImage
-import nostalgia.memoir.screens.data.PhotoTagSearchResult
+import nostalgia.memoir.screens.data.PhotoSearchResult
 import nostalgia.memoir.screens.data.StoredAlbum
 import nostalgia.memoir.screens.data.StoredPhotoTag
 import nostalgia.memoir.screens.data.StoredPhotoTagType
 import nostalgia.memoir.screens.data.loadPhotosInAlbum
 import nostalgia.memoir.screens.data.searchAlbums
-import nostalgia.memoir.screens.data.searchPhotosByTags
+import nostalgia.memoir.screens.data.searchPhotos
 
 @Composable
 fun PlaceholderSearchScreen(modifier: Modifier = Modifier) {
@@ -80,11 +81,11 @@ fun PlaceholderSearchScreen(modifier: Modifier = Modifier) {
             val trimmedQuery = query.trim()
             val albumResults = remember(trimmedQuery) { searchAlbums(context, trimmedQuery) }
             val photoResults = remember(trimmedQuery, selectedTagTypes) {
-                searchPhotosByTags(context, trimmedQuery)
+                searchPhotos(context, trimmedQuery)
                     .mapNotNull { result ->
                         val matchingTags = result.matchingTags
                             .filter { tag -> tag.type in selectedTagTypes }
-                        if (matchingTags.isEmpty()) {
+                        if (matchingTags.isEmpty() && result.matchingJournalPreviews.isEmpty()) {
                             null
                         } else {
                             result.copy(matchingTags = matchingTags)
@@ -107,7 +108,7 @@ fun PlaceholderSearchScreen(modifier: Modifier = Modifier) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    placeholder = { Text("Search tags or album names") },
+                    placeholder = { Text("Search albums, tags, or journals") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 )
@@ -132,7 +133,7 @@ fun PlaceholderSearchScreen(modifier: Modifier = Modifier) {
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = "Search album names or photo tags.",
+                                text = "Search album names, photo tags, or journal text.",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -176,7 +177,7 @@ fun PlaceholderSearchScreen(modifier: Modifier = Modifier) {
                                 item {
                                     SearchSectionHeader(
                                         title = "Photos",
-                                        subtitle = "${photoResults.size} tagged result${if (photoResults.size == 1) "" else "s"}",
+                                        subtitle = "${photoResults.size} result${if (photoResults.size == 1) "" else "s"}",
                                     )
                                 }
                                 item {
@@ -333,7 +334,7 @@ private fun AlbumSearchRow(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PhotoSearchResults(
-    results: List<PhotoTagSearchResult>,
+    results: List<PhotoSearchResult>,
     onPhotoClick: (String) -> Unit,
 ) {
     FlowRow(
@@ -362,7 +363,18 @@ private fun PhotoSearchResults(
                             .clip(RoundedCornerShape(14.dp)),
                         contentScale = ContentScale.Crop,
                     )
-                    MatchingTagsRow(tags = result.matchingTags)
+                    if (result.matchingTags.isNotEmpty()) {
+                        MatchingTagsRow(tags = result.matchingTags)
+                    }
+                    if (result.matchingJournalPreviews.isNotEmpty()) {
+                        Text(
+                            text = "Journal: ${result.matchingJournalPreviews.first()}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }

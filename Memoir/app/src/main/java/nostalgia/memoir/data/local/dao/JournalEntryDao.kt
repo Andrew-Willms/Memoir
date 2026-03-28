@@ -56,4 +56,15 @@ interface JournalEntryDao {
         """,
     )
     fun search(query: String): Flow<List<JournalEntryEntity>>
+
+    @Query(
+        """
+        SELECT DISTINCT je.*
+        FROM journal_entry je
+        INNER JOIN journal_entry_fts fts ON fts.entryId = je.id
+        WHERE journal_entry_fts MATCH :ftsQuery
+        ORDER BY je.updatedAt DESC
+        """,
+    )
+    suspend fun searchByFullText(ftsQuery: String): List<JournalEntryEntity>
 }

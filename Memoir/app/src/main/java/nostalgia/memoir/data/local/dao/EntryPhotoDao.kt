@@ -17,4 +17,7 @@ interface EntryPhotoDao {
 
     @Query("SELECT * FROM entry_photo WHERE entryId = :entryId ORDER BY orderIndex ASC")
     suspend fun getByEntryIdOrdered(entryId: String): List<EntryPhotoCrossRef>
+
+    @Query("SELECT * FROM entry_photo WHERE entryId IN (:entryIds) ORDER BY entryId ASC, orderIndex ASC")
+    suspend fun getByEntryIdsOrdered(entryIds: List<String>): List<EntryPhotoCrossRef>
 }
