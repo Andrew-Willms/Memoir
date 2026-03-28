@@ -35,7 +35,7 @@ import nostalgia.memoir.data.local.entities.TagEntity
         AlbumMemberEntity::class,
         AlbumPhotoCrossRef::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(RoomTypeConverters::class)

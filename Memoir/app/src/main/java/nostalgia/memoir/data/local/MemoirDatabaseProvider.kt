@@ -21,9 +21,15 @@ object MemoirDatabaseProvider {
                 .addMigrations(MIGRATION_1_2)
                 .addMigrations(MIGRATION_2_3)
                 .addMigrations(MIGRATION_3_4)
+                .addMigrations(MIGRATION_4_5)
                 .build()
                 .also { created -> instance = created }
         }
+    }
+
+    internal fun resetForTests() {
+        instance?.close()
+        instance = null
     }
 
     private val MIGRATION_1_2: Migration = object : Migration(1, 2) {
@@ -131,6 +137,13 @@ object MemoirDatabaseProvider {
                 INNER JOIN tag t ON t.id = et.tagId
                 """.trimIndent(),
             )
+        }
+    }
+
+    private val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DROP INDEX IF EXISTS `index_album_photo_photoId`")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_album_photo_photoId` ON `album_photo` (`photoId`)")
         }
     }
 }
