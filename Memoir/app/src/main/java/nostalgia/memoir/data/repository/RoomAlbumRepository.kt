@@ -65,6 +65,14 @@ class RoomAlbumRepository(
         return albumId
     }
 
+    override suspend fun deleteAlbum(albumId: String): Boolean {
+        val existing = albumDao.getById(albumId) ?: return false
+        database.withTransaction {
+            albumDao.deleteById(albumId)
+        }
+        return existing.id == albumId
+    }
+
     override suspend fun renameAlbum(albumId: String, newName: String): Boolean {
         val existing = albumDao.getById(albumId) ?: return false
         val cleaned = newName.trim()

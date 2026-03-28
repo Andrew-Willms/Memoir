@@ -13,6 +13,7 @@ import nostalgia.memoir.data.model.UpsertAlbumMemberInput
 
 interface AlbumRepository {
     suspend fun createAlbum(input: CreateAlbumInput): String
+    suspend fun deleteAlbum(albumId: String): Boolean
     suspend fun renameAlbum(albumId: String, newName: String): Boolean
     suspend fun getAlbumAggregate(albumId: String): AlbumAggregate?
     suspend fun addPhotoToAlbum(input: AddPhotoToAlbumInput): Boolean

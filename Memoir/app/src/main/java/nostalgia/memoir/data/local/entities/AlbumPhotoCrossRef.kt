@@ -23,7 +23,7 @@ import androidx.room.Index
     ],
     indices = [
         Index(value = ["albumId"]),
-        Index(value = ["photoId"], unique = true),
+        Index(value = ["photoId"]),
         Index(value = ["orderIndex"]),
         Index(value = ["addedAt"]),
     ],
